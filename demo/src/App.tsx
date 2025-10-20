@@ -1,28 +1,8 @@
 import { useState } from 'react';
+import { getRepoStats, type RepoStats, type AuthorStats } from 'vibe-coding-stats';
 import RepoInput from './components/RepoInput';
 import StatsDisplay from './components/StatsDisplay';
 import './App.css';
-
-export interface RepoStats {
-  totalHours: number;
-  sessionsCount: number;
-  devDays: number;
-  totalCommits: number;
-  avgCommitsPerSession: number;
-  avgSessionsPerDay: number;
-  coffeeCups: number;
-  perAuthor: Record<string, AuthorStats>;
-}
-
-export interface AuthorStats {
-  name: string;
-  email: string;
-  totalHours: number;
-  sessionsCount: number;
-  devDays: number;
-  totalCommits: number;
-  coffeeCups: number;
-}
 
 function App() {
   const [stats, setStats] = useState<RepoStats | null>(null);
@@ -35,44 +15,8 @@ function App() {
     setStats(null);
 
     try {
-      // For now, generate mock data since the core library might not be built yet
-      // In production, this would call: await analyzeRepo({ url: repoUrl })
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Mock stats for demonstration
-      const mockStats: RepoStats = {
-        totalHours: 127.5,
-        sessionsCount: 45,
-        devDays: 23,
-        totalCommits: 156,
-        avgCommitsPerSession: 3.47,
-        avgSessionsPerDay: 1.96,
-        coffeeCups: 45,
-        perAuthor: {
-          'author1': {
-            name: 'Main Developer',
-            email: 'dev@example.com',
-            totalHours: 95.25,
-            sessionsCount: 32,
-            devDays: 18,
-            totalCommits: 112,
-            coffeeCups: 32,
-          },
-          'author2': {
-            name: 'Contributor',
-            email: 'contributor@example.com',
-            totalHours: 32.25,
-            sessionsCount: 13,
-            devDays: 9,
-            totalCommits: 44,
-            coffeeCups: 13,
-          },
-        },
-      };
-
-      setStats(mockStats);
+      const stats = await getRepoStats({ url: repoUrl });
+      setStats(stats);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze repository');
     } finally {
