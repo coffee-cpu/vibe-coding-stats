@@ -1,0 +1,30 @@
+{
+  "name": "vibe-coding-stats-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TypeScript library for analyzing GitHub repository activity and estimating developer coding metrics",
+  "workspaces": [
+    "packages/*",
+    "demo"
+  ],
+  "scripts": {
+    "build": "npm run build -w packages/core",
+    "build:demo": "npm run build -w demo",
+    "dev": "npm run dev -w demo",
+    "test": "npm run test -w packages/core",
+    "test:watch": "npm run test:watch -w packages/core",
+    "lint": "eslint . --ext .ts,.tsx",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf packages/core/dist demo/dist node_modules/.cache"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
