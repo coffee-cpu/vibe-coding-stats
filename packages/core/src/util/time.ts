@@ -1,11 +1,11 @@
-import { format, parseISO, formatInTimeZone } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+import { format, parseISO } from 'date-fns';
+import { utcToZonedTime, formatInTimeZone } from 'date-fns-tz';
 
 /**
  * Convert a Date to a specific timezone
  */
 export function toTimezone(date: Date, timezone: string): Date {
-  return toZonedTime(date, timezone);
+  return utcToZonedTime(date, timezone);
 }
 
 /**
