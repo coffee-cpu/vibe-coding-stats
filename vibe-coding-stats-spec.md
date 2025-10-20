@@ -170,14 +170,14 @@ const myStats = await getRepoStats({
 
 // Team activity comparison
 const teamStats = await getRepoStats({
-  url: 'https://github.com/company/product',
+  url: 'https://github.com/coffee-cpu/vibe-coding-stats',
   since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // last 30 days
   timezone: 'America/New_York',
 });
 
 // Open source project analysis
 const ossStats = await getRepoStats({
-  repo: 'facebook/react',
+  repo: 'coffee-cpu/vibe-coding-stats',
   excludeBots: true,
   sessionTimeoutMin: 60, // longer timeout for OSS
 });

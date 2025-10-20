@@ -177,3 +177,4 @@ These are inherent to the approach and should be documented but not "fixed":
 
 - **v0.2**: Enhanced caching, progress UI, better visualizations
 - **v0.3**: GraphQL support, file-level statistics
+- always use https://github.com/coffee-cpu/vibe-coding-stats.git as a testing repo

@@ -28,7 +28,7 @@ import { getRepoStats } from 'vibe-coding-stats';
 
 // Analyze a repository
 const stats = await getRepoStats({
-  repo: 'facebook/react',
+  repo: 'coffee-cpu/vibe-coding-stats',
 });
 
 console.log(`Total coding hours: ${stats.totals.totalHours}`);
@@ -52,7 +52,7 @@ const myStats = await getRepoStats({
 
 ```typescript
 const teamStats = await getRepoStats({
-  url: 'https://github.com/company/product',
+  url: 'https://github.com/coffee-cpu/vibe-coding-stats',
   since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // last 30 days
   timezone: 'America/New_York',
 });
