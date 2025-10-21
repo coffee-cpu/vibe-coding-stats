@@ -43,49 +43,37 @@ console.log(`Coffee cups: ${stats.totals.coffeeCups} ☕`);
 
 ```typescript
 const myStats = await getRepoStats(
-  { repo: 'username/my-project' },
+  { repo: 'coffee-cpu/vibe-coding-stats' },
   {
     since: '2024-01-01',
     until: '2024-12-31',
-    authors: ['my-github-username'],
+    authors: ['coffee-cpu'],
   }
 );
 ```
 
-### Team Activity Comparison
+### Last 30 Days with Timezone
 
 ```typescript
-const teamStats = await getRepoStats(
+const recentStats = await getRepoStats(
   { url: 'https://github.com/coffee-cpu/vibe-coding-stats' },
   {
-    since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // last 30 days
+    since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     timezone: 'America/New_York',
   }
 );
 
 // View per-author breakdown
-teamStats.perAuthor.forEach(author => {
+recentStats.perAuthor.forEach(author => {
   console.log(`${author.author}: ${author.totalHours}h, ${author.coffeeCups}☕`);
 });
-```
-
-### Open Source Project Analysis
-
-```typescript
-const ossStats = await getRepoStats(
-  { repo: 'microsoft/vscode' },
-  {
-    excludeBots: true,
-    sessionTimeoutMin: 60, // longer timeout for OSS
-  }
-);
 ```
 
 ### With GitHub Token (Higher Rate Limits)
 
 ```typescript
 const stats = await getRepoStats(
-  { repo: 'owner/repo' },
+  { repo: 'coffee-cpu/vibe-coding-stats' },
   {
     githubToken: process.env.GITHUB_TOKEN,
   }
