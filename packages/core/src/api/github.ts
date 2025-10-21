@@ -98,7 +98,7 @@ export async function fetchCommits(
       url.searchParams.set('until', untilDate);
     }
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       Accept: 'application/vnd.github.v3+json',
     };
 
