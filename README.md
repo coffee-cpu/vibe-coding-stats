@@ -5,6 +5,8 @@
 
 A TypeScript library for analyzing GitHub repositories to estimate developer activity in a more "human" way — including hours spent coding, coding sessions, and coffee cups consumed.
 
+**Optimized for vibe coding workflows** with session-based commit patterns. The default session timeout (45 minutes) and assumptions work best for repositories with frequent, smaller commits rather than infrequent large commits.
+
 ## Features
 
 - 📊 **Coding Metrics**: Estimate total hours, sessions, and commits
@@ -27,9 +29,9 @@ npm install vibe-coding-stats
 import { getRepoStats } from 'vibe-coding-stats';
 
 // Analyze a repository
-const stats = await getRepoStats({
-  repo: 'coffee-cpu/vibe-coding-stats',
-});
+const stats = await getRepoStats(
+  { repo: 'coffee-cpu/vibe-coding-stats' }
+);
 
 console.log(`Total coding hours: ${stats.totals.totalHours}`);
 console.log(`Coffee cups: ${stats.totals.coffeeCups} ☕`);
@@ -40,22 +42,26 @@ console.log(`Coffee cups: ${stats.totals.coffeeCups} ☕`);
 ### Personal Coding Stats for 2024
 
 ```typescript
-const myStats = await getRepoStats({
-  repo: 'username/my-project',
-  since: '2024-01-01',
-  until: '2024-12-31',
-  authors: ['my-github-username'],
-});
+const myStats = await getRepoStats(
+  { repo: 'username/my-project' },
+  {
+    since: '2024-01-01',
+    until: '2024-12-31',
+    authors: ['my-github-username'],
+  }
+);
 ```
 
 ### Team Activity Comparison
 
 ```typescript
-const teamStats = await getRepoStats({
-  url: 'https://github.com/coffee-cpu/vibe-coding-stats',
-  since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // last 30 days
-  timezone: 'America/New_York',
-});
+const teamStats = await getRepoStats(
+  { url: 'https://github.com/coffee-cpu/vibe-coding-stats' },
+  {
+    since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // last 30 days
+    timezone: 'America/New_York',
+  }
+);
 
 // View per-author breakdown
 teamStats.perAuthor.forEach(author => {
@@ -66,36 +72,44 @@ teamStats.perAuthor.forEach(author => {
 ### Open Source Project Analysis
 
 ```typescript
-const ossStats = await getRepoStats({
-  repo: 'microsoft/vscode',
-  excludeBots: true,
-  sessionTimeoutMin: 60, // longer timeout for OSS
-});
+const ossStats = await getRepoStats(
+  { repo: 'microsoft/vscode' },
+  {
+    excludeBots: true,
+    sessionTimeoutMin: 60, // longer timeout for OSS
+  }
+);
 ```
 
 ### With GitHub Token (Higher Rate Limits)
 
 ```typescript
-const stats = await getRepoStats({
-  repo: 'owner/repo',
-  githubToken: process.env.GITHUB_TOKEN,
-});
+const stats = await getRepoStats(
+  { repo: 'owner/repo' },
+  {
+    githubToken: process.env.GITHUB_TOKEN,
+  }
+);
 ```
 
 ## API Reference
 
-### `getRepoStats(input)`
+### `getRepoStats(repoInput, options?)`
 
 Main function to get repository statistics.
 
-**Input:**
+**Parameters:**
 
+1. `repoInput` - Repository identifier (required):
+```typescript
+{ repo: string }  // "owner/repo"
+// OR
+{ url: string }   // "https://github.com/owner/repo"
+```
+
+2. `options` - Configuration options (optional):
 ```typescript
 {
-  // Repository (choose one)
-  repo?: string;              // "owner/repo"
-  url?: string;               // "https://github.com/owner/repo"
-
   // Session configuration
   sessionTimeoutMin?: number;     // default: 45
   firstCommitBonusMin?: number;   // default: 15
@@ -112,13 +126,17 @@ Main function to get repository statistics.
   githubToken?: string;           // optional, for higher rate limits
   perPage?: number;               // default: 100
   maxPages?: number;
+
+  // Caching
+  cache?: 'memory' | 'none';      // default: 'memory'
+  cacheTTLms?: number;            // default: 900000 (15 min)
 }
 ```
 
-**Output:**
+**Returns:**
 
 ```typescript
-{
+Promise<{
   repo: string;
   period: { since?: string; until?: string };
   config: {
@@ -137,7 +155,20 @@ Main function to get repository statistics.
   };
   perAuthor: AuthorStats[];
   perDay: DayStats[];
-}
+}>
+```
+
+### Cache Utilities
+
+```typescript
+import { clearCache, getCacheSize } from 'vibe-coding-stats';
+
+// Clear the in-memory cache
+clearCache();
+
+// Get number of cached entries
+const size = getCacheSize();
+console.log(`Cache has ${size} entries`);
 ```
 
 ## How It Works
