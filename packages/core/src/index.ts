@@ -2,6 +2,7 @@ import type { RepoInput, StatsOptions, RepoStats } from './model/types.js';
 import { parseRepoInput, fetchCommits } from './api/github.js';
 import { buildSessions } from './logic/sessions.js';
 import { aggregateByAuthor, aggregateByDay, calculateTotals } from './logic/aggregate.js';
+import { generateCacheKey, getFromCache, setInCache } from './util/cache.js';
 
 /**
  * Get coding statistics for a GitHub repository
@@ -16,6 +17,13 @@ export async function getRepoStats(
   // Parse repository
   const { owner, repo } = parseRepoInput(repoInput);
   const repoString = `${owner}/${repo}`;
+
+  // Check cache
+  const cacheKey = generateCacheKey(owner, repo, options);
+  const cached = getFromCache(cacheKey, options);
+  if (cached) {
+    return cached;
+  }
 
   // Set defaults
   const sessionTimeoutMin = options.sessionTimeoutMin ?? 45;
@@ -62,6 +70,9 @@ export async function getRepoStats(
     perDay,
   };
 
+  // Store in cache
+  setInCache(cacheKey, result, options);
+
   return result;
 }
 
@@ -77,3 +88,6 @@ export type {
   StatsErrorCode,
 } from './model/types.js';
 export { StatsError } from './model/types.js';
+
+// Re-export cache utilities
+export { clearCache, getCacheSize } from './util/cache.js';

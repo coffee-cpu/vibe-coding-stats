@@ -4,8 +4,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "lib": ["ES2020"],
-    "types": ["node"],
-    "composite": true
+    "types": ["node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "tests"]

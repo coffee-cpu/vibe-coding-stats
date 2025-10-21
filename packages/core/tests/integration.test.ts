@@ -1,9 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
-import { getRepoStats } from '../src/index.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getRepoStats, clearCache } from '../src/index.js';
 import { StatsError } from '../src/model/types.js';
 import type { GitHubCommit } from '../src/model/types.js';
 
 describe('getRepoStats integration', () => {
+  beforeEach(() => {
+    clearCache();
+  });
+
   function createMockGitHubCommit(
     sha: string,
     authorName: string,
@@ -439,5 +443,103 @@ describe('getRepoStats integration', () => {
     expect(stats.totals.devDays).toBe(2);
     expect(stats.totals.avgCommitsPerSession).toBe(2.5); // 5 / 2
     expect(stats.totals.avgSessionsPerDay).toBe(1); // 2 / 2
+  });
+
+  it('should cache results and reuse them on subsequent calls', async () => {
+    const mockCommits = [
+      createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z'),
+    ];
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockCommits,
+    });
+
+    clearCache();
+
+    // First call - should fetch from API
+    const stats1 = await getRepoStats({
+      repo: 'owner/repo',
+      cache: 'memory',
+      fetchImpl: mockFetch,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(stats1.totals.totalCommits).toBe(1);
+
+    // Second call with same params - should use cache
+    const stats2 = await getRepoStats({
+      repo: 'owner/repo',
+      cache: 'memory',
+      fetchImpl: mockFetch,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1); // Still 1, not called again
+    expect(stats2.totals.totalCommits).toBe(1);
+    expect(stats2).toEqual(stats1);
+  });
+
+  it('should not cache when cache is disabled', async () => {
+    const mockCommits = [
+      createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z'),
+    ];
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockCommits,
+    });
+
+    clearCache();
+
+    // First call
+    await getRepoStats({
+      repo: 'owner/repo',
+      cache: 'none',
+      fetchImpl: mockFetch,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    // Second call - should fetch again
+    await getRepoStats({
+      repo: 'owner/repo',
+      cache: 'none',
+      fetchImpl: mockFetch,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(2); // Called twice
+  });
+
+  it('should use different cache entries for different options', async () => {
+    const mockCommits = [
+      createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z'),
+    ];
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockCommits,
+    });
+
+    clearCache();
+
+    // First call with timezone UTC
+    await getRepoStats({
+      repo: 'owner/repo',
+      timezone: 'UTC',
+      cache: 'memory',
+      fetchImpl: mockFetch,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    // Second call with different timezone - should not use cache
+    await getRepoStats({
+      repo: 'owner/repo',
+      timezone: 'America/New_York',
+      cache: 'memory',
+      fetchImpl: mockFetch,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(2); // Called again
   });
 });
