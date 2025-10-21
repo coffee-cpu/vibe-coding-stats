@@ -46,14 +46,65 @@ For single-commit sessions: `duration = firstCommitBonusMin` (default: 15 minute
 ```
 packages/core/
   src/
-    api/github.ts          # GitHub API client (REST, with future GraphQL support)
-    logic/sessions.ts      # Session grouping and duration calculation
-    logic/aggregate.ts     # Aggregation by author/day, metrics computation
+    api/github.ts          # GitHub API client (pure HTTP, returns raw GitHub data)
+    logic/
+      filters.ts           # Filtering logic (bots, merge commits, authors)
+      transform.ts         # Transform GitHub API format to internal types
+      sessions.ts          # Session grouping and duration calculation
+      aggregate.ts         # Aggregation by author/day, metrics computation
     model/types.ts         # TypeScript interfaces and types
-    util/time.ts           # Timezone handling using date-fns
-    index.ts               # Public API exports
+    util/
+      time.ts              # Timezone handling using date-fns
+      cache.ts             # In-memory caching implementation
+    index.ts               # Public API and orchestration layer
   tests/                   # Vitest unit and integration tests
 ```
+
+### Architectural Principles
+
+**Separation of Concerns**: Each module has a single, well-defined responsibility:
+
+1. **API Layer** (`api/github.ts`)
+   - Pure HTTP client - only communicates with GitHub REST API
+   - Returns raw `GitHubCommit[]` data without any transformation
+   - Handles pagination, authentication, and error mapping
+   - Does NOT filter, transform, or orchestrate business logic
+
+2. **Transformation Layer** (`logic/transform.ts`)
+   - Converts GitHub API format to internal `Commit` type
+   - Enriches data with metadata (isBot, isMerge flags)
+   - Pure functions, easy to test in isolation
+
+3. **Filtering Layer** (`logic/filters.ts`)
+   - Centralized filtering logic for bots, merge commits, and author filtering
+   - Exports reusable predicates: `isLikelyBot()`, `isMergeCommit()`, `shouldIncludeCommit()`
+   - All filtering decisions in one place for easy maintenance
+
+4. **Orchestration Layer** (`index.ts`)
+   - Coordinates the data flow: **fetch → filter → transform → sessions → aggregation**
+   - Only place where the full pipeline is assembled
+   - Handles caching at the appropriate level
+
+**Data Flow Pattern**:
+```
+GitHub API (raw)
+  ↓ fetch (api/github.ts)
+GitHubCommit[]
+  ↓ filter (logic/filters.ts)
+GitHubCommit[] (filtered)
+  ↓ transform (logic/transform.ts)
+Commit[]
+  ↓ session building (logic/sessions.ts)
+Session[]
+  ↓ aggregation (logic/aggregate.ts)
+RepoStats
+```
+
+This architecture makes it easy to:
+- Test each layer independently
+- Replace implementations (e.g., swap REST API for GraphQL)
+- Add new filters or transformations without touching other layers
+- Understand the data flow at a glance
 
 ## Important Implementation Notes
 
@@ -172,6 +223,72 @@ These are inherent to the approach and should be documented but not "fixed":
 3. No measurement of **non-coding activities** (reviews, meetings, debugging without commits)
 4. **Heuristic-based** session detection may occasionally split or merge incorrectly
 5. **Author identification** depends on Git config consistency across machines
+
+## Technical Guidelines
+
+### Code Organization
+
+**Single Responsibility Principle**:
+- Each module should have ONE clear purpose
+- API layer handles HTTP only, no business logic
+- Orchestration happens at application layer (index.ts), not in API or utility layers
+- When a module does multiple things, split it into focused modules
+
+**Naming Conventions**:
+- API functions should indicate they return raw data: `fetchGitHubCommits()` not `fetchCommits()`
+- Predicates should be clear: `isLikelyBot()`, `isMergeCommit()`, `shouldIncludeCommit()`
+- Transformation functions: `transformGitHubCommit()` - verb + type pattern
+
+**Testing Strategy**:
+- Test each layer independently with mocked dependencies
+- Integration tests should cover the full pipeline (see `integration.test.ts`)
+- When refactoring, ensure all existing tests still pass
+- Current test count: 96 tests across 6 test files
+
+### Build Configuration
+
+**TypeScript Compilation**:
+- `tsconfig.json` uses `composite: true` for project references
+- tsup DTS generation needs `composite: false` override in `tsup.config.ts`:
+  ```typescript
+  dts: {
+    resolve: true,
+    compilerOptions: {
+      composite: false,  // Required for DTS build to work
+    },
+  }
+  ```
+
+### Common Patterns
+
+**Error Handling**:
+- Use `StatsError` class with semantic error codes
+- API layer maps HTTP errors to error codes (404 → NOT_FOUND, etc.)
+- Always wrap fetch errors in try/catch and rethrow as StatsError
+
+**Data Transformation Pattern**:
+```typescript
+// ❌ Don't transform in API layer
+export async function fetchData() {
+  const raw = await api();
+  return transform(filter(raw));  // NO!
+}
+
+// ✅ Return raw data, transform at orchestration layer
+export async function fetchData() {
+  return await api();  // Return raw data
+}
+
+// In index.ts:
+const raw = await fetchData();
+const filtered = raw.filter(predicate);
+const transformed = filtered.map(transform);
+```
+
+**Filtering Pattern**:
+- Use array methods with predicates: `.filter(shouldIncludeCommit)`
+- Keep all filtering logic in `logic/filters.ts`
+- Filtering happens BEFORE transformation to reduce processing
 
 ## Future Roadmap
 
