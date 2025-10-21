@@ -1,8 +1,10 @@
-import type { RepoInput, StatsOptions, RepoStats } from './model/types.js';
-import { parseRepoInput, fetchCommits } from './api/github.js';
+import type { RepoInput, StatsOptions, RepoStats, Commit } from './model/types.js';
+import { parseRepoInput, fetchGitHubCommits } from './api/github.js';
 import { buildSessions } from './logic/sessions.js';
 import { aggregateByAuthor, aggregateByDay, calculateTotals } from './logic/aggregate.js';
 import { generateCacheKey, getFromCache, setInCache } from './util/cache.js';
+import { transformGitHubCommit } from './logic/transform.js';
+import { shouldIncludeCommit } from './logic/filters.js';
 
 /**
  * Get coding statistics for a GitHub repository
@@ -30,8 +32,13 @@ export async function getRepoStats(
   const firstCommitBonusMin = options.firstCommitBonusMin ?? 15;
   const timezone = options.timezone ?? 'UTC';
 
-  // Fetch commits
-  const commits = await fetchCommits(owner, repo, options);
+  // Fetch raw commits from GitHub
+  const rawCommits = await fetchGitHubCommits(owner, repo, options);
+
+  // Transform and filter commits
+  const commits: Commit[] = rawCommits
+    .filter((ghCommit) => shouldIncludeCommit(ghCommit, options))
+    .map((ghCommit) => transformGitHubCommit(ghCommit));
 
   // Build sessions
   const sessions = buildSessions(commits, {

@@ -1,25 +1,10 @@
 import type {
-  Commit,
   GitHubCommit,
   GitHubErrorResponse,
   RepoInput,
-  StatsOptions,
   StatsErrorCode,
 } from '../model/types.js';
 import { StatsError } from '../model/types.js';
-
-const BOT_PATTERNS = [
-  'bot',
-  'dependabot',
-  'renovate',
-  'github-actions',
-  'greenkeeper',
-  'snyk',
-  'codecov',
-  'travis',
-  'circleci',
-  '[bot]',
-];
 
 /**
  * Parse repo input to extract owner and repo name
@@ -48,38 +33,35 @@ export function parseRepoInput(input: RepoInput): { owner: string; repo: string 
 }
 
 /**
- * Check if a commit author is likely a bot
+ * Options for fetching GitHub commits
  */
-function isLikelyBot(authorName: string, authorLogin?: string): boolean {
-  const nameLower = authorName.toLowerCase();
-  const loginLower = authorLogin?.toLowerCase() || '';
-
-  return BOT_PATTERNS.some(
-    (pattern) => nameLower.includes(pattern) || loginLower.includes(pattern)
-  );
+export interface FetchGitHubCommitsOptions {
+  githubToken?: string;
+  since?: string | Date;
+  until?: string | Date;
+  perPage?: number;
+  maxPages?: number;
+  fetchImpl?: typeof fetch;
 }
 
 /**
- * Fetch commits from GitHub REST API
+ * Fetch raw commits from GitHub REST API (no filtering or transformation)
  */
-export async function fetchCommits(
+export async function fetchGitHubCommits(
   owner: string,
   repo: string,
-  options: StatsOptions = {}
-): Promise<Commit[]> {
+  options: FetchGitHubCommitsOptions = {}
+): Promise<GitHubCommit[]> {
   const {
     githubToken,
     since,
     until,
-    authors,
-    excludeBots = true,
-    excludeMergeCommits = false,
     perPage = 100,
     maxPages,
     fetchImpl = fetch,
   } = options;
 
-  const commits: Commit[] = [];
+  const commits: GitHubCommit[] = [];
   let page = 1;
   let hasMore = true;
 
@@ -120,34 +102,7 @@ export async function fetchCommits(
         break;
       }
 
-      for (const ghCommit of data) {
-        const authorName = ghCommit.commit.author.name;
-        const authorLogin = ghCommit.author?.login;
-        const isBot = isLikelyBot(authorName, authorLogin);
-        const isMerge = (ghCommit.parents?.length || 0) > 1;
-
-        // Apply filters
-        if (excludeBots && isBot) continue;
-        if (excludeMergeCommits && isMerge) continue;
-        if (authors && authors.length > 0) {
-          const matchesAuthor = authors.some(
-            (a) =>
-              a.toLowerCase() === authorName.toLowerCase() ||
-              a.toLowerCase() === authorLogin?.toLowerCase()
-          );
-          if (!matchesAuthor) continue;
-        }
-
-        commits.push({
-          sha: ghCommit.sha,
-          author: authorLogin || authorName,
-          authorLogin,
-          date: new Date(ghCommit.commit.author.date),
-          message: ghCommit.commit.message,
-          isMerge,
-          isBot,
-        });
-      }
+      commits.push(...data);
 
       // Check if there are more pages
       if (data.length < perPage) {

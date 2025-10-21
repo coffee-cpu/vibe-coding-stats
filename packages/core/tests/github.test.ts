@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { parseRepoInput, fetchCommits } from '../src/api/github.js';
+import { parseRepoInput, fetchGitHubCommits } from '../src/api/github.js';
 import { StatsError } from '../src/model/types.js';
 import type { GitHubCommit } from '../src/model/types.js';
 
@@ -44,7 +44,7 @@ describe('GitHub API utilities', () => {
     });
   });
 
-  describe('fetchCommits', () => {
+  describe('fetchGitHubCommits', () => {
     function createMockGitHubCommit(
       sha: string,
       authorName: string,
@@ -78,16 +78,16 @@ describe('GitHub API utilities', () => {
         json: async () => mockCommits,
       });
 
-      const commits = await fetchCommits('owner', 'repo', { fetchImpl: mockFetch });
+      const commits = await fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch });
 
       expect(commits).toHaveLength(2);
       expect(commits[0].sha).toBe('sha1');
-      expect(commits[0].author).toBe('alice');
+      expect(commits[0].commit.author.name).toBe('Alice');
       expect(commits[1].sha).toBe('sha2');
-      expect(commits[1].author).toBe('bob');
+      expect(commits[1].commit.author.name).toBe('Bob');
     });
 
-    it('should use author name when login is missing', async () => {
+    it('should return raw GitHub commit data', async () => {
       const mockCommits = [
         createMockGitHubCommit('sha1', 'Alice Johnson', '2024-01-15T14:00:00Z'),
       ];
@@ -97,110 +97,12 @@ describe('GitHub API utilities', () => {
         json: async () => mockCommits,
       });
 
-      const commits = await fetchCommits('owner', 'repo', { fetchImpl: mockFetch });
+      const commits = await fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch });
 
-      expect(commits[0].author).toBe('Alice Johnson');
-      expect(commits[0].authorLogin).toBeUndefined();
-    });
-
-    it('should exclude bots by default', async () => {
-      const mockCommits = [
-        createMockGitHubCommit('sha1', 'Alice', '2024-01-15T14:00:00Z', 'alice'),
-        createMockGitHubCommit('sha2', 'dependabot', '2024-01-15T15:00:00Z', 'dependabot[bot]'),
-        createMockGitHubCommit('sha3', 'Bob', '2024-01-15T16:00:00Z', 'bob'),
-      ];
-
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => mockCommits,
-      });
-
-      const commits = await fetchCommits('owner', 'repo', { fetchImpl: mockFetch });
-
-      expect(commits).toHaveLength(2);
-      expect(commits.find((c) => c.author === 'dependabot')).toBeUndefined();
-    });
-
-    it('should include bots when excludeBots is false', async () => {
-      const mockCommits = [
-        createMockGitHubCommit('sha1', 'Alice', '2024-01-15T14:00:00Z', 'alice'),
-        createMockGitHubCommit('sha2', 'dependabot', '2024-01-15T15:00:00Z', 'dependabot[bot]'),
-      ];
-
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => mockCommits,
-      });
-
-      const commits = await fetchCommits('owner', 'repo', {
-        fetchImpl: mockFetch,
-        excludeBots: false,
-      });
-
-      expect(commits).toHaveLength(2);
-      expect(commits.find((c) => c.author === 'dependabot[bot]')).toBeDefined();
-    });
-
-    it('should exclude merge commits when excludeMergeCommits is true', async () => {
-      const mockCommits = [
-        createMockGitHubCommit('sha1', 'Alice', '2024-01-15T14:00:00Z', 'alice', false),
-        createMockGitHubCommit('sha2', 'Alice', '2024-01-15T15:00:00Z', 'alice', true),
-        createMockGitHubCommit('sha3', 'Bob', '2024-01-15T16:00:00Z', 'bob', false),
-      ];
-
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => mockCommits,
-      });
-
-      const commits = await fetchCommits('owner', 'repo', {
-        fetchImpl: mockFetch,
-        excludeMergeCommits: true,
-      });
-
-      expect(commits).toHaveLength(2);
-      expect(commits.find((c) => c.sha === 'sha2')).toBeUndefined();
-    });
-
-    it('should filter by author list', async () => {
-      const mockCommits = [
-        createMockGitHubCommit('sha1', 'Alice', '2024-01-15T14:00:00Z', 'alice'),
-        createMockGitHubCommit('sha2', 'Bob', '2024-01-15T15:00:00Z', 'bob'),
-        createMockGitHubCommit('sha3', 'Charlie', '2024-01-15T16:00:00Z', 'charlie'),
-      ];
-
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => mockCommits,
-      });
-
-      const commits = await fetchCommits('owner', 'repo', {
-        fetchImpl: mockFetch,
-        authors: ['alice', 'charlie'],
-      });
-
-      expect(commits).toHaveLength(2);
-      expect(commits.find((c) => c.author === 'alice')).toBeDefined();
-      expect(commits.find((c) => c.author === 'charlie')).toBeDefined();
-      expect(commits.find((c) => c.author === 'bob')).toBeUndefined();
-    });
-
-    it('should match authors case-insensitively', async () => {
-      const mockCommits = [
-        createMockGitHubCommit('sha1', 'Alice Johnson', '2024-01-15T14:00:00Z', 'alice'),
-      ];
-
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => mockCommits,
-      });
-
-      const commits = await fetchCommits('owner', 'repo', {
-        fetchImpl: mockFetch,
-        authors: ['ALICE'], // Uppercase
-      });
-
-      expect(commits).toHaveLength(1);
+      // Should return raw GitHub format, not transformed
+      expect(commits[0]).toHaveProperty('commit');
+      expect(commits[0].commit).toHaveProperty('author');
+      expect(commits[0].commit.author.name).toBe('Alice Johnson');
     });
 
     it('should add Authorization header when token is provided', async () => {
@@ -213,7 +115,7 @@ describe('GitHub API utilities', () => {
         json: async () => mockCommits,
       });
 
-      await fetchCommits('owner', 'repo', {
+      await fetchGitHubCommits('owner', 'repo', {
         fetchImpl: mockFetch,
         githubToken: 'test-token',
       });
@@ -234,7 +136,7 @@ describe('GitHub API utilities', () => {
         json: async () => [],
       });
 
-      await fetchCommits('owner', 'repo', {
+      await fetchGitHubCommits('owner', 'repo', {
         fetchImpl: mockFetch,
         since: '2024-01-01T00:00:00Z',
       });
@@ -249,7 +151,7 @@ describe('GitHub API utilities', () => {
         json: async () => [],
       });
 
-      await fetchCommits('owner', 'repo', {
+      await fetchGitHubCommits('owner', 'repo', {
         fetchImpl: mockFetch,
         until: '2024-12-31T23:59:59Z',
       });
@@ -281,7 +183,7 @@ describe('GitHub API utilities', () => {
           json: async () => page2,
         });
 
-      const commits = await fetchCommits('owner', 'repo', { fetchImpl: mockFetch });
+      const commits = await fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch });
 
       expect(commits).toHaveLength(150);
       expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -299,7 +201,7 @@ describe('GitHub API utilities', () => {
         json: async () => page,
       });
 
-      const commits = await fetchCommits('owner', 'repo', {
+      const commits = await fetchGitHubCommits('owner', 'repo', {
         fetchImpl: mockFetch,
         maxPages: 1,
       });
@@ -315,12 +217,12 @@ describe('GitHub API utilities', () => {
         json: async () => ({ message: 'Not Found' }),
       });
 
-      await expect(fetchCommits('owner', 'repo', { fetchImpl: mockFetch })).rejects.toThrow(
+      await expect(fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch })).rejects.toThrow(
         StatsError
       );
 
       try {
-        await fetchCommits('owner', 'repo', { fetchImpl: mockFetch });
+        await fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch });
       } catch (error) {
         expect((error as StatsError).code).toBe('NOT_FOUND');
       }
@@ -333,12 +235,12 @@ describe('GitHub API utilities', () => {
         json: async () => ({ message: 'Unauthorized' }),
       });
 
-      await expect(fetchCommits('owner', 'repo', { fetchImpl: mockFetch })).rejects.toThrow(
+      await expect(fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch })).rejects.toThrow(
         StatsError
       );
 
       try {
-        await fetchCommits('owner', 'repo', { fetchImpl: mockFetch });
+        await fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch });
       } catch (error) {
         expect((error as StatsError).code).toBe('UNAUTHORIZED');
       }
@@ -351,12 +253,12 @@ describe('GitHub API utilities', () => {
         json: async () => ({ message: 'API rate limit exceeded' }),
       });
 
-      await expect(fetchCommits('owner', 'repo', { fetchImpl: mockFetch })).rejects.toThrow(
+      await expect(fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch })).rejects.toThrow(
         StatsError
       );
 
       try {
-        await fetchCommits('owner', 'repo', { fetchImpl: mockFetch });
+        await fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch });
       } catch (error) {
         expect((error as StatsError).code).toBe('RATE_LIMIT');
       }
@@ -365,12 +267,12 @@ describe('GitHub API utilities', () => {
     it('should throw NETWORK error for fetch failures', async () => {
       const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-      await expect(fetchCommits('owner', 'repo', { fetchImpl: mockFetch })).rejects.toThrow(
+      await expect(fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch })).rejects.toThrow(
         StatsError
       );
 
       try {
-        await fetchCommits('owner', 'repo', { fetchImpl: mockFetch });
+        await fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch });
       } catch (error) {
         expect((error as StatsError).code).toBe('NETWORK');
       }
@@ -382,7 +284,7 @@ describe('GitHub API utilities', () => {
         json: async () => [],
       });
 
-      const commits = await fetchCommits('owner', 'repo', { fetchImpl: mockFetch });
+      const commits = await fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch });
 
       expect(commits).toHaveLength(0);
     });
