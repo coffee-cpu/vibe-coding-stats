@@ -18,16 +18,16 @@ import { shouldIncludeCommit } from './logic/filters.js';
  *
  * @example
  * // Basic usage with short repo format
- * const stats = await getRepoStats({ repo: 'facebook/react' });
+ * const stats = await getRepoStats({ repo: 'coffee-cpu/vibe-coding-stats' });
  *
  * @example
  * // Using full GitHub URL
- * const stats = await getRepoStats({ url: 'https://github.com/facebook/react' });
+ * const stats = await getRepoStats({ url: 'https://github.com/coffee-cpu/vibe-coding-stats' });
  *
  * @example
  * // With custom options
  * const stats = await getRepoStats(
- *   { repo: 'facebook/react' },
+ *   { repo: 'coffee-cpu/vibe-coding-stats' },
  *   {
  *     sessionTimeoutMin: 60,
  *     since: '2024-01-01',

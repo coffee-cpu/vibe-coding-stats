@@ -2,7 +2,7 @@
   "name": "vibe-coding-stats-monorepo",
   "version": "0.1.0",
   "private": true,
-  "description": "TypeScript library for analyzing GitHub repository activity and estimating developer coding metrics",
+  "description": "TypeScript library for analyzing GitHub repository activity and estimating developer coding metrics. Optimized for vibe coding workflows with session-based commit patterns.",
   "workspaces": [
     "packages/*",
     "demo"
