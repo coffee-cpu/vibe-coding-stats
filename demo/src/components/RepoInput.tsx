@@ -7,7 +7,7 @@ interface RepoInputProps {
 }
 
 function RepoInput({ onAnalyze, loading }: RepoInputProps) {
-  const [repoUrl, setRepoUrl] = useState('');
+  const [repoUrl, setRepoUrl] = useState('https://github.com/coffee-cpu/vibe-coding-stats');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
