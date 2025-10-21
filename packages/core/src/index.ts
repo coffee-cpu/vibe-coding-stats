@@ -8,13 +8,38 @@ import { shouldIncludeCommit } from './logic/filters.js';
 
 /**
  * Get coding statistics for a GitHub repository
+ *
+ * Analyzes commit history to estimate developer activity including hours spent,
+ * coding sessions, and per-day/per-author breakdowns.
+ *
+ * @param repoInput - Repository identifier using either short format `{ repo: 'owner/repo' }` or URL format `{ url: 'https://github.com/owner/repo' }`
+ * @param options - Configuration options for analysis (all optional)
+ * @returns Promise resolving to detailed statistics about the repository
+ *
+ * @example
+ * // Basic usage with short repo format
+ * const stats = await getRepoStats({ repo: 'facebook/react' });
+ *
+ * @example
+ * // Using full GitHub URL
+ * const stats = await getRepoStats({ url: 'https://github.com/facebook/react' });
+ *
+ * @example
+ * // With custom options
+ * const stats = await getRepoStats(
+ *   { repo: 'facebook/react' },
+ *   {
+ *     sessionTimeoutMin: 60,
+ *     since: '2024-01-01',
+ *     timezone: 'America/New_York',
+ *     excludeBots: true
+ *   }
+ * );
  */
 export async function getRepoStats(
-  input: RepoInput & StatsOptions
+  repoInput: RepoInput,
+  options: StatsOptions = {}
 ): Promise<RepoStats> {
-  // Extract repo input and options
-  const repoInput: RepoInput = 'repo' in input ? { repo: input.repo } : { url: input.url };
-  const options: StatsOptions = { ...input };
 
   // Parse repository
   const { owner, repo } = parseRepoInput(repoInput);

@@ -42,10 +42,10 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const stats = await getRepoStats({
-      repo: 'owner/repo',
-      fetchImpl: mockFetch,
-    });
+    const stats = await getRepoStats(
+      { repo: 'owner/repo' },
+      { fetchImpl: mockFetch }
+    );
 
     expect(stats.repo).toBe('owner/repo');
     expect(stats.totals.totalCommits).toBe(3);
@@ -76,10 +76,10 @@ describe('getRepoStats integration', () => {
       json: async () => [],
     });
 
-    const stats = await getRepoStats({
-      repo: 'owner/repo',
-      fetchImpl: mockFetch,
-    });
+    const stats = await getRepoStats(
+      { repo: 'owner/repo' },
+      { fetchImpl: mockFetch }
+    );
 
     expect(stats.totals).toEqual({
       totalHours: 0,
@@ -106,19 +106,17 @@ describe('getRepoStats integration', () => {
     });
 
     // With 30 min timeout, should be 2 sessions
-    const stats1 = await getRepoStats({
-      repo: 'owner/repo',
-      sessionTimeoutMin: 30,
-      fetchImpl: mockFetch,
-    });
+    const stats1 = await getRepoStats(
+      { repo: 'owner/repo' },
+      { sessionTimeoutMin: 30, fetchImpl: mockFetch }
+    );
     expect(stats1.totals.sessionsCount).toBe(2);
 
     // With 40 min timeout, should be 1 session
-    const stats2 = await getRepoStats({
-      repo: 'owner/repo',
-      sessionTimeoutMin: 40,
-      fetchImpl: mockFetch,
-    });
+    const stats2 = await getRepoStats(
+      { repo: 'owner/repo' },
+      { sessionTimeoutMin: 40, fetchImpl: mockFetch }
+    );
     expect(stats2.totals.sessionsCount).toBe(1);
   });
 
@@ -132,11 +130,10 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const stats = await getRepoStats({
-      repo: 'owner/repo',
-      firstCommitBonusMin: 30,
-      fetchImpl: mockFetch,
-    });
+    const stats = await getRepoStats(
+      { repo: 'owner/repo' },
+      { firstCommitBonusMin: 30, fetchImpl: mockFetch }
+    );
 
     // Single commit should get 30 min bonus
     expect(stats.totals.totalHours).toBe(0.5);
@@ -152,12 +149,14 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const stats = await getRepoStats({
-      repo: 'owner/repo',
-      since: '2024-01-01T00:00:00Z',
-      until: '2024-12-31T23:59:59Z',
-      fetchImpl: mockFetch,
-    });
+    const stats = await getRepoStats(
+      { repo: 'owner/repo' },
+      {
+        since: '2024-01-01T00:00:00Z',
+        until: '2024-12-31T23:59:59Z',
+        fetchImpl: mockFetch,
+      }
+    );
 
     expect(stats.period.since).toBe('2024-01-01T00:00:00Z');
     expect(stats.period.until).toBe('2024-12-31T23:59:59Z');
@@ -181,12 +180,14 @@ describe('getRepoStats integration', () => {
     const since = new Date('2024-01-01T00:00:00Z');
     const until = new Date('2024-12-31T23:59:59Z');
 
-    const stats = await getRepoStats({
-      repo: 'owner/repo',
-      since,
-      until,
-      fetchImpl: mockFetch,
-    });
+    const stats = await getRepoStats(
+      { repo: 'owner/repo' },
+      {
+        since,
+        until,
+        fetchImpl: mockFetch,
+      }
+    );
 
     expect(stats.period.since).toBe(since.toISOString());
     expect(stats.period.until).toBe(until.toISOString());
@@ -203,11 +204,10 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const stats = await getRepoStats({
-      repo: 'owner/repo',
-      authors: ['alice'],
-      fetchImpl: mockFetch,
-    });
+    const stats = await getRepoStats(
+      { repo: 'owner/repo' },
+      { authors: ['alice'], fetchImpl: mockFetch }
+    );
 
     expect(stats.totals.totalCommits).toBe(1);
     expect(stats.perAuthor).toHaveLength(1);
@@ -237,10 +237,10 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const stats = await getRepoStats({
-      repo: 'owner/repo',
-      fetchImpl: mockFetch,
-    });
+    const stats = await getRepoStats(
+      { repo: 'owner/repo' },
+      { fetchImpl: mockFetch }
+    );
 
     expect(stats.totals.totalCommits).toBe(1);
     expect(stats.perAuthor).toHaveLength(1);
@@ -270,11 +270,10 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const stats = await getRepoStats({
-      repo: 'owner/repo',
-      excludeBots: false,
-      fetchImpl: mockFetch,
-    });
+    const stats = await getRepoStats(
+      { repo: 'owner/repo' },
+      { excludeBots: false, fetchImpl: mockFetch }
+    );
 
     expect(stats.totals.totalCommits).toBe(2);
     expect(stats.perAuthor).toHaveLength(2);
@@ -291,11 +290,10 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const stats = await getRepoStats({
-      repo: 'owner/repo',
-      excludeMergeCommits: true,
-      fetchImpl: mockFetch,
-    });
+    const stats = await getRepoStats(
+      { repo: 'owner/repo' },
+      { excludeMergeCommits: true, fetchImpl: mockFetch }
+    );
 
     expect(stats.totals.totalCommits).toBe(1);
   });
@@ -311,17 +309,15 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const statsUTC = await getRepoStats({
-      repo: 'owner/repo',
-      timezone: 'UTC',
-      fetchImpl: mockFetch,
-    });
+    const statsUTC = await getRepoStats(
+      { repo: 'owner/repo' },
+      { timezone: 'UTC', fetchImpl: mockFetch }
+    );
 
-    const statsEST = await getRepoStats({
-      repo: 'owner/repo',
-      timezone: 'America/New_York',
-      fetchImpl: mockFetch,
-    });
+    const statsEST = await getRepoStats(
+      { repo: 'owner/repo' },
+      { timezone: 'America/New_York', fetchImpl: mockFetch }
+    );
 
     expect(statsUTC.perDay[0].date).toBe('2024-01-16');
     expect(statsEST.perDay[0].date).toBe('2024-01-15');
@@ -333,13 +329,15 @@ describe('getRepoStats integration', () => {
       json: async () => [],
     });
 
-    const stats = await getRepoStats({
-      repo: 'owner/repo',
-      sessionTimeoutMin: 60,
-      firstCommitBonusMin: 20,
-      timezone: 'America/Los_Angeles',
-      fetchImpl: mockFetch,
-    });
+    const stats = await getRepoStats(
+      { repo: 'owner/repo' },
+      {
+        sessionTimeoutMin: 60,
+        firstCommitBonusMin: 20,
+        timezone: 'America/Los_Angeles',
+        fetchImpl: mockFetch,
+      }
+    );
 
     expect(stats.config).toEqual({
       sessionTimeoutMin: 60,
@@ -354,20 +352,20 @@ describe('getRepoStats integration', () => {
       json: async () => [],
     });
 
-    const stats = await getRepoStats({
-      url: 'https://github.com/owner/repo',
-      fetchImpl: mockFetch,
-    });
+    const stats = await getRepoStats(
+      { url: 'https://github.com/owner/repo' },
+      { fetchImpl: mockFetch }
+    );
 
     expect(stats.repo).toBe('owner/repo');
   });
 
   it('should throw error for invalid repo', async () => {
     await expect(
-      getRepoStats({
-        repo: 'invalid-format',
-        fetchImpl: fetch,
-      })
+      getRepoStats(
+        { repo: 'invalid-format' },
+        { fetchImpl: fetch }
+      )
     ).rejects.toThrow(StatsError);
   });
 
@@ -383,11 +381,10 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const stats = await getRepoStats({
-      repo: 'owner/repo',
-      firstCommitBonusMin: 15,
-      fetchImpl: mockFetch,
-    });
+    const stats = await getRepoStats(
+      { repo: 'owner/repo' },
+      { firstCommitBonusMin: 15, fetchImpl: mockFetch }
+    );
 
     // Duration: (14:30 - 14:00) + 15 bonus = 30 + 15 = 45 min = 0.75 hours
     expect(stats.totals.totalHours).toBe(0.75);
@@ -405,10 +402,10 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const stats = await getRepoStats({
-      repo: 'owner/repo',
-      fetchImpl: mockFetch,
-    });
+    const stats = await getRepoStats(
+      { repo: 'owner/repo' },
+      { fetchImpl: mockFetch }
+    );
 
     expect(stats.totals.devDays).toBe(3);
     expect(stats.perDay).toHaveLength(3);
@@ -433,10 +430,10 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const stats = await getRepoStats({
-      repo: 'owner/repo',
-      fetchImpl: mockFetch,
-    });
+    const stats = await getRepoStats(
+      { repo: 'owner/repo' },
+      { fetchImpl: mockFetch }
+    );
 
     expect(stats.totals.totalCommits).toBe(5);
     expect(stats.totals.sessionsCount).toBe(2);
@@ -458,21 +455,19 @@ describe('getRepoStats integration', () => {
     clearCache();
 
     // First call - should fetch from API
-    const stats1 = await getRepoStats({
-      repo: 'owner/repo',
-      cache: 'memory',
-      fetchImpl: mockFetch,
-    });
+    const stats1 = await getRepoStats(
+      { repo: 'owner/repo' },
+      { cache: 'memory', fetchImpl: mockFetch }
+    );
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(stats1.totals.totalCommits).toBe(1);
 
     // Second call with same params - should use cache
-    const stats2 = await getRepoStats({
-      repo: 'owner/repo',
-      cache: 'memory',
-      fetchImpl: mockFetch,
-    });
+    const stats2 = await getRepoStats(
+      { repo: 'owner/repo' },
+      { cache: 'memory', fetchImpl: mockFetch }
+    );
 
     expect(mockFetch).toHaveBeenCalledTimes(1); // Still 1, not called again
     expect(stats2.totals.totalCommits).toBe(1);
@@ -492,20 +487,18 @@ describe('getRepoStats integration', () => {
     clearCache();
 
     // First call
-    await getRepoStats({
-      repo: 'owner/repo',
-      cache: 'none',
-      fetchImpl: mockFetch,
-    });
+    await getRepoStats(
+      { repo: 'owner/repo' },
+      { cache: 'none', fetchImpl: mockFetch }
+    );
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
 
     // Second call - should fetch again
-    await getRepoStats({
-      repo: 'owner/repo',
-      cache: 'none',
-      fetchImpl: mockFetch,
-    });
+    await getRepoStats(
+      { repo: 'owner/repo' },
+      { cache: 'none', fetchImpl: mockFetch }
+    );
 
     expect(mockFetch).toHaveBeenCalledTimes(2); // Called twice
   });
@@ -523,22 +516,18 @@ describe('getRepoStats integration', () => {
     clearCache();
 
     // First call with timezone UTC
-    await getRepoStats({
-      repo: 'owner/repo',
-      timezone: 'UTC',
-      cache: 'memory',
-      fetchImpl: mockFetch,
-    });
+    await getRepoStats(
+      { repo: 'owner/repo' },
+      { timezone: 'UTC', cache: 'memory', fetchImpl: mockFetch }
+    );
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
 
     // Second call with different timezone - should not use cache
-    await getRepoStats({
-      repo: 'owner/repo',
-      timezone: 'America/New_York',
-      cache: 'memory',
-      fetchImpl: mockFetch,
-    });
+    await getRepoStats(
+      { repo: 'owner/repo' },
+      { timezone: 'America/New_York', cache: 'memory', fetchImpl: mockFetch }
+    );
 
     expect(mockFetch).toHaveBeenCalledTimes(2); // Called again
   });

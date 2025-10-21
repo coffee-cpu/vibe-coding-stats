@@ -15,7 +15,7 @@ function App() {
     setStats(null);
 
     try {
-      const stats = await getRepoStats({ url: repoUrl });
+      const stats = await getRepoStats({ url: repoUrl }, {});
       setStats(stats);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze repository');

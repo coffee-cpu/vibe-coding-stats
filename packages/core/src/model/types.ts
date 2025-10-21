@@ -1,4 +1,15 @@
 // Input types
+/**
+ * Repository identifier - accepts either a short repo format or full GitHub URL
+ *
+ * @example
+ * // Using short format
+ * { repo: 'owner/repo' }
+ *
+ * @example
+ * // Using full URL
+ * { url: 'https://github.com/owner/repo' }
+ */
 export type RepoInput = { repo: string } | { url: string };
 
 export interface StatsOptions {
