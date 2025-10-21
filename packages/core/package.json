@@ -1,6 +1,6 @@
 {
   "name": "vibe-coding-stats",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "TypeScript library for analyzing GitHub repository activity and estimating developer coding metrics. Optimized for vibe coding workflows with session-based commit patterns.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -14,7 +14,7 @@
   },
   "files": [
     "dist",
-    "../../README.md"
+    "README.md"
   ],
   "scripts": {
     "build": "tsup",
@@ -22,7 +22,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "type-check": "tsc --noEmit",
-    "prepublishOnly": "npm run type-check && npm run test && npm run build"
+    "copy-readme": "cp ../../README.md .",
+    "prepublishOnly": "npm run copy-readme && npm run type-check && npm run test && npm run build"
   },
   "keywords": [
     "github",

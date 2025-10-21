@@ -44,3 +44,6 @@ lerna-debug.log*
 
 # Misc
 *.local
+
+# Auto-generated files
+packages/core/README.md
