@@ -1,0 +1,21 @@
+# Source files
+src/
+tests/
+*.test.ts
+
+# Config files
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+
+# Development files
+*.tsbuildinfo
+.DS_Store
+node_modules/
+
+# Documentation (not needed in package)
+*.md
+!README.md
+
+# CI/CD
+.github/
