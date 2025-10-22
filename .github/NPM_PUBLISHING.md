@@ -29,40 +29,48 @@ This repository uses GitHub Actions to automatically publish the `vibe-coding-st
 
 ### Publishing a New Version
 
-#### Option 1: Manual Version Bump (Recommended)
+#### Step 1: Bump the Version
+
+**IMPORTANT**: Choose the correct version type based on your changes:
 
 ```bash
-# Make your changes to the code
-# Then bump version and create tag:
-
-# For patch release (0.1.2 → 0.1.3)
+# For PATCH release (1.0.0 → 1.0.1)
+# Use when you make backward compatible bug fixes
 npm version patch -w packages/core
 
-# For minor release (0.1.3 → 0.2.0)
+# For MINOR release (1.0.1 → 1.1.0)
+# Use when you add functionality in a backward compatible manner
 npm version minor -w packages/core
 
-# For major release (0.2.0 → 1.0.0)
+# For MAJOR release (1.1.0 → 2.0.0)
+# Use when you make incompatible API changes
 npm version major -w packages/core
+```
 
-# Push commits and tags
+**Note**: In our monorepo setup, `npm version` only updates `package.json` and `package-lock.json` but doesn't automatically create commits or tags.
+
+#### Step 2: Commit, Tag, and Push
+
+After running `npm version`, you need to manually commit and tag:
+
+```bash
+# 1. Commit the version bump (package.json and package-lock.json will be modified)
+git add package-lock.json packages/core/package.json
+git commit -m "Bump version to X.Y.Z"
+
+# 2. Create a git tag matching the new version
+git tag vX.Y.Z
+
+# 3. Push commits and tags to trigger the publish workflow
 git push && git push --tags
 ```
 
-The `npm version` command:
-- Updates `package.json` version
-- Creates a git commit
-- Creates a git tag (e.g., `v0.1.3`)
-
-#### Option 2: Manual Tag Creation
-
+**Example for v1.0.0**:
 ```bash
-# 1. Update version in packages/core/package.json manually
-# 2. Commit the change
-git add packages/core/package.json
-git commit -m "Bump version to 0.1.4"
-
-# 3. Create and push tag
-git tag v0.1.4
+npm version major -w packages/core
+git add package-lock.json packages/core/package.json
+git commit -m "Bump version to 1.0.0"
+git tag v1.0.0
 git push && git push --tags
 ```
 
