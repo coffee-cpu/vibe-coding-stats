@@ -43,12 +43,6 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
           <div className="stat-value">{totals.avgCommitsPerSession.toFixed(2)}</div>
           <div className="stat-label">Avg Commits/Session</div>
         </div>
-
-        <div className="stat-card">
-          <div className="stat-icon">☕</div>
-          <div className="stat-value">{totals.coffeeCups}</div>
-          <div className="stat-label">Coffee Cups</div>
-        </div>
       </div>
 
       <div className="authors-section">
@@ -76,10 +70,6 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
                 <div className="author-stat">
                   <span className="author-stat-label">Commits:</span>
                   <span className="author-stat-value">{author.totalCommits}</span>
-                </div>
-                <div className="author-stat">
-                  <span className="author-stat-label">Coffee:</span>
-                  <span className="author-stat-value">{author.coffeeCups} ☕</span>
                 </div>
               </div>
             </div>

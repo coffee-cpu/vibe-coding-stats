@@ -13,19 +13,23 @@ export function aggregateByAuthor(sessions: Session[]): AuthorStats[] {
       existing.totalHours += session.durationMinutes / 60;
       existing.sessionsCount += 1;
       existing.totalCommits += session.commits.length;
-      existing.coffeeCups += 1;
     } else {
       authorMap.set(session.author, {
         author: session.author,
         totalHours: session.durationMinutes / 60,
         sessionsCount: 1,
         totalCommits: session.commits.length,
-        coffeeCups: 1,
       });
     }
   }
 
-  return Array.from(authorMap.values()).sort((a, b) => b.totalHours - a.totalHours);
+  // Round totalHours to 2 decimal places for each author
+  return Array.from(authorMap.values())
+    .map((stats) => ({
+      ...stats,
+      totalHours: Math.round(stats.totalHours * 100) / 100,
+    }))
+    .sort((a, b) => b.totalHours - a.totalHours);
 }
 
 /**
@@ -72,7 +76,6 @@ export function calculateTotals(sessions: Session[]) {
 
   const avgCommitsPerSession = sessionsCount > 0 ? totalCommits / sessionsCount : 0;
   const avgSessionsPerDay = devDays > 0 ? sessionsCount / devDays : 0;
-  const coffeeCups = sessionsCount;
 
   return {
     totalHours: Math.round(totalHours * 100) / 100,
@@ -81,6 +84,5 @@ export function calculateTotals(sessions: Session[]) {
     totalCommits,
     avgCommitsPerSession: Math.round(avgCommitsPerSession * 100) / 100,
     avgSessionsPerDay: Math.round(avgSessionsPerDay * 100) / 100,
-    coffeeCups,
   };
 }

@@ -3,14 +3,13 @@
 [![npm version](https://img.shields.io/npm/v/vibe-coding-stats.svg)](https://www.npmjs.com/package/vibe-coding-stats)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A TypeScript library for analyzing GitHub repositories to estimate developer activity in a more "human" way — including hours spent coding, coding sessions, and coffee cups consumed.
+A TypeScript library for analyzing GitHub repositories to estimate developer activity in a more "human" way — including hours spent coding and coding sessions.
 
 **Optimized for vibe coding workflows** with session-based commit patterns. The default session timeout (45 minutes) and assumptions work best for repositories with frequent, smaller commits rather than infrequent large commits.
 
 ## Features
 
 - 📊 **Coding Metrics**: Estimate total hours, sessions, and commits
-- ☕ **Fun Stats**: Track coffee cups (one per session!)
 - 🌍 **Timezone Support**: Convert timestamps to any timezone
 - 🤖 **Bot Filtering**: Automatically exclude bot commits
 - 📅 **Flexible Date Ranges**: Analyze specific time periods
@@ -34,7 +33,6 @@ const stats = await getRepoStats(
 );
 
 console.log(`Total coding hours: ${stats.totals.totalHours}`);
-console.log(`Coffee cups: ${stats.totals.coffeeCups} ☕`);
 ```
 
 ## Usage Examples
@@ -65,7 +63,7 @@ const recentStats = await getRepoStats(
 
 // View per-author breakdown
 recentStats.perAuthor.forEach(author => {
-  console.log(`${author.author}: ${author.totalHours}h, ${author.coffeeCups}☕`);
+  console.log(`${author.author}: ${author.totalHours}h, ${author.sessionsCount} sessions`);
 });
 ```
 
@@ -139,7 +137,6 @@ Promise<{
     totalCommits: number;
     avgCommitsPerSession: number;
     avgSessionsPerDay: number;
-    coffeeCups: number;
   };
   perAuthor: AuthorStats[];
   perDay: DayStats[];
@@ -187,7 +184,6 @@ Sessions can span across midnight and are treated as a single continuous session
 - **totalCommits**: Total commit count after filtering
 - **avgCommitsPerSession**: totalCommits / sessionsCount
 - **avgSessionsPerDay**: sessionsCount / devDays
-- **coffeeCups**: sessionsCount (one cup per session ☕)
 
 ## Limitations
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**vibe-coding-stats** is a TypeScript library and npm package for analyzing GitHub repositories to estimate developer activity in a human-friendly way. It calculates metrics like hours spent coding, coding sessions, and coffee cups consumed based on commit history.
+**vibe-coding-stats** is a TypeScript library and npm package for analyzing GitHub repositories to estimate developer activity in a human-friendly way. It calculates metrics like hours spent coding and coding sessions based on commit history.
 
 The project consists of:
 - **Core library** (`packages/core/`) - TypeScript package published to npm
@@ -37,7 +37,7 @@ For single-commit sessions: `duration = firstCommitBonusMin` (default: 15 minute
 ### Key Types
 
 - **`RepoStats`** - Main output with totals, perAuthor, perDay breakdowns
-- **`AuthorStats`** - Per-author metrics (hours, sessions, commits, coffee)
+- **`AuthorStats`** - Per-author metrics (hours, sessions, commits)
 - **`DayStats`** - Per-day metrics with list of active authors
 - **`StatsOptions`** - Configuration (timeouts, date ranges, filters, caching)
 
@@ -212,7 +212,6 @@ npm run build -w demo
 - **totalCommits**: Total commit count after filtering
 - **avgCommitsPerSession**: totalCommits / sessionsCount
 - **avgSessionsPerDay**: sessionsCount / devDays
-- **coffeeCups**: sessionsCount (one cup per session ☕)
 
 ## Known Limitations
 

@@ -33,8 +33,11 @@ describe('getRepoStats integration', () => {
   it('should return stats for a simple repository', async () => {
     const mockCommits = [
       createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z'),
-      createMockGitHubCommit('sha2', 'Alice', 'alice', '2024-01-15T14:30:00Z'),
-      createMockGitHubCommit('sha3', 'Bob', 'bob', '2024-01-15T15:00:00Z'),
+      createMockGitHubCommit('sha2', 'Alice', 'alice', '2024-01-15T14:30:00Z'), // 30 min later (same session)
+      createMockGitHubCommit('sha3', 'Alice', 'alice', '2024-01-15T15:00:00Z'), // 30 min later (same session)
+      createMockGitHubCommit('sha4', 'Alice', 'alice', '2024-01-15T16:00:00Z'), // 60 min later (new session, >45 min)
+      createMockGitHubCommit('sha5', 'Bob', 'bob', '2024-01-15T17:00:00Z'),
+      createMockGitHubCommit('sha6', 'Bob', 'bob', '2024-01-15T19:00:00Z'), // 120 min later (new session, >45 min)
     ];
 
     const mockFetch = vi.fn().mockResolvedValue({
@@ -48,25 +51,24 @@ describe('getRepoStats integration', () => {
     );
 
     expect(stats.repo).toBe('owner/repo');
-    expect(stats.totals.totalCommits).toBe(3);
-    expect(stats.totals.sessionsCount).toBe(2); // Alice: 1 session, Bob: 1 session
+    expect(stats.totals.totalCommits).toBe(6);
+    expect(stats.totals.sessionsCount).toBe(4); // Alice: 2 sessions, Bob: 2 sessions
     expect(stats.totals.devDays).toBe(1);
-    expect(stats.totals.coffeeCups).toBe(2);
 
     // Per-author stats
     expect(stats.perAuthor).toHaveLength(2);
     const aliceStats = stats.perAuthor.find((a) => a.author === 'alice');
     const bobStats = stats.perAuthor.find((a) => a.author === 'bob');
 
-    expect(aliceStats?.totalCommits).toBe(2);
-    expect(aliceStats?.sessionsCount).toBe(1);
-    expect(bobStats?.totalCommits).toBe(1);
-    expect(bobStats?.sessionsCount).toBe(1);
+    expect(aliceStats?.totalCommits).toBe(4);
+    expect(aliceStats?.sessionsCount).toBe(2);
+    expect(bobStats?.totalCommits).toBe(2);
+    expect(bobStats?.sessionsCount).toBe(2);
 
     // Per-day stats
     expect(stats.perDay).toHaveLength(1);
     expect(stats.perDay[0].date).toBe('2024-01-15');
-    expect(stats.perDay[0].totalCommits).toBe(3);
+    expect(stats.perDay[0].totalCommits).toBe(6);
     expect(stats.perDay[0].authors).toHaveLength(2);
   });
 
@@ -88,7 +90,6 @@ describe('getRepoStats integration', () => {
       totalCommits: 0,
       avgCommitsPerSession: 0,
       avgSessionsPerDay: 0,
-      coffeeCups: 0,
     });
     expect(stats.perAuthor).toHaveLength(0);
     expect(stats.perDay).toHaveLength(0);

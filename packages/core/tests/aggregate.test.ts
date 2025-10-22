@@ -34,7 +34,7 @@ describe('aggregation logic', () => {
         createSession(
           'alice',
           [createCommit('alice', '2024-01-15T14:00:00Z', 'sha1')],
-          60,
+          150, // 2.5 hours
           '2024-01-15'
         ),
       ];
@@ -44,10 +44,9 @@ describe('aggregation logic', () => {
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
         author: 'alice',
-        totalHours: 1,
+        totalHours: 2.5,
         sessionsCount: 1,
         totalCommits: 1,
-        coffeeCups: 1,
       });
     });
 
@@ -59,13 +58,13 @@ describe('aggregation logic', () => {
             createCommit('alice', '2024-01-15T09:00:00Z', 'sha1'),
             createCommit('alice', '2024-01-15T09:30:00Z', 'sha2'),
           ],
-          60,
+          130, // 2.17 hours
           '2024-01-15'
         ),
         createSession(
           'alice',
           [createCommit('alice', '2024-01-15T14:00:00Z', 'sha3')],
-          45,
+          250, // 4.17 hours
           '2024-01-15'
         ),
       ];
@@ -75,10 +74,9 @@ describe('aggregation logic', () => {
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
         author: 'alice',
-        totalHours: 1.75, // 60 + 45 = 105 min = 1.75 hours
+        totalHours: 6.33, // 130 + 250 = 380 min = 6.33 hours
         sessionsCount: 2,
         totalCommits: 3,
-        coffeeCups: 2,
       });
     });
 
@@ -286,7 +284,7 @@ describe('aggregation logic', () => {
         createSession(
           'alice',
           [createCommit('alice', '2024-01-15T14:00:00Z', 'sha1')],
-          60,
+          180, // 3 hours
           '2024-01-15'
         ),
       ];
@@ -294,13 +292,12 @@ describe('aggregation logic', () => {
       const result = calculateTotals(sessions);
 
       expect(result).toEqual({
-        totalHours: 1,
+        totalHours: 3,
         sessionsCount: 1,
         devDays: 1,
         totalCommits: 1,
         avgCommitsPerSession: 1,
         avgSessionsPerDay: 1,
-        coffeeCups: 1,
       });
     });
 
@@ -313,13 +310,13 @@ describe('aggregation logic', () => {
             createCommit('alice', '2024-01-15T09:30:00Z', 'sha2'),
             createCommit('alice', '2024-01-15T10:00:00Z', 'sha3'),
           ],
-          90,
+          150, // 2.5 hours
           '2024-01-15'
         ),
         createSession(
           'bob',
           [createCommit('bob', '2024-01-15T14:00:00Z', 'sha4')],
-          30,
+          250, // 4.17 hours
           '2024-01-15'
         ),
         createSession(
@@ -328,7 +325,7 @@ describe('aggregation logic', () => {
             createCommit('alice', '2024-01-16T09:00:00Z', 'sha5'),
             createCommit('alice', '2024-01-16T09:15:00Z', 'sha6'),
           ],
-          45,
+          135, // 2.25 hours
           '2024-01-16'
         ),
       ];
@@ -336,13 +333,12 @@ describe('aggregation logic', () => {
       const result = calculateTotals(sessions);
 
       expect(result).toEqual({
-        totalHours: 2.75, // 90 + 30 + 45 = 165 min = 2.75 hours
+        totalHours: 8.92, // 150 + 250 + 135 = 535 min = 8.92 hours
         sessionsCount: 3,
         devDays: 2, // Jan 15 and Jan 16
         totalCommits: 6,
         avgCommitsPerSession: 2, // 6 commits / 3 sessions
         avgSessionsPerDay: 1.5, // 3 sessions / 2 days
-        coffeeCups: 3,
       });
     });
 
@@ -391,7 +387,6 @@ describe('aggregation logic', () => {
         totalCommits: 0,
         avgCommitsPerSession: 0,
         avgSessionsPerDay: 0,
-        coffeeCups: 0,
       });
     });
 
