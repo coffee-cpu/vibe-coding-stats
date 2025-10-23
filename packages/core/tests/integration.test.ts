@@ -90,6 +90,7 @@ describe('getRepoStats integration', () => {
       totalCommits: 0,
       avgCommitsPerSession: 0,
       avgSessionsPerDay: 0,
+      longestSessionHours: 0,
     });
     expect(stats.perAuthor).toHaveLength(0);
     expect(stats.perDay).toHaveLength(0);

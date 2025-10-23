@@ -10,6 +10,7 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
   const statCards = [
     { icon: '⏱️', value: totals.totalHours.toFixed(1), label: 'Total Hours', color: 'from-coffee-500 to-coffee-600' },
     { icon: '💻', value: totals.sessionsCount, label: 'Coding Sessions', color: 'from-coffee-600 to-coffee-700' },
+    { icon: '🔥', value: `${totals.longestSessionHours.toFixed(1)}h`, label: 'Longest Session', color: 'from-amber-500 to-orange-600' },
     { icon: '📅', value: totals.devDays, label: 'Dev Days', color: 'from-cream-500 to-cream-600' },
     { icon: '📝', value: totals.totalCommits, label: 'Total Commits', color: 'from-coffee-400 to-coffee-500' },
     { icon: '📊', value: totals.avgCommitsPerSession.toFixed(2), label: 'Avg Commits/Session', color: 'from-cream-600 to-cream-700' },
@@ -24,7 +25,7 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6">
         {statCards.map((stat, index) => (
           <div
             key={stat.label}
@@ -76,6 +77,10 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
                 <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                   <span className="text-coffee-700 font-medium">⏱️ Hours:</span>
                   <span className="font-bold text-coffee-900">{author.totalHours.toFixed(1)}</span>
+                </div>
+                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                  <span className="text-coffee-700 font-medium">🔥 Longest:</span>
+                  <span className="font-bold text-coffee-900">{author.longestSessionHours.toFixed(1)}h</span>
                 </div>
                 <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                   <span className="text-coffee-700 font-medium">💻 Sessions:</span>

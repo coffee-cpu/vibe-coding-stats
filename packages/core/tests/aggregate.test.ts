@@ -47,6 +47,7 @@ describe('aggregation logic', () => {
         totalHours: 2.5,
         sessionsCount: 1,
         totalCommits: 1,
+        longestSessionHours: 2.5,
       });
     });
 
@@ -77,6 +78,7 @@ describe('aggregation logic', () => {
         totalHours: 6.33, // 130 + 250 = 380 min = 6.33 hours
         sessionsCount: 2,
         totalCommits: 3,
+        longestSessionHours: 4.17, // 250 min
       });
     });
 
@@ -298,6 +300,7 @@ describe('aggregation logic', () => {
         totalCommits: 1,
         avgCommitsPerSession: 1,
         avgSessionsPerDay: 1,
+        longestSessionHours: 3,
       });
     });
 
@@ -339,6 +342,7 @@ describe('aggregation logic', () => {
         totalCommits: 6,
         avgCommitsPerSession: 2, // 6 commits / 3 sessions
         avgSessionsPerDay: 1.5, // 3 sessions / 2 days
+        longestSessionHours: 4.17, // 250 min
       });
     });
 
@@ -387,6 +391,7 @@ describe('aggregation logic', () => {
         totalCommits: 0,
         avgCommitsPerSession: 0,
         avgSessionsPerDay: 0,
+        longestSessionHours: 0,
       });
     });
 

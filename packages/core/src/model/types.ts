@@ -46,6 +46,7 @@ export interface RepoStats {
     totalCommits: number;
     avgCommitsPerSession: number;
     avgSessionsPerDay: number;
+    longestSessionHours: number;
   };
   perAuthor: AuthorStats[];
   perDay: DayStats[];
@@ -64,6 +65,7 @@ export interface AuthorStats {
   totalHours: number;
   sessionsCount: number;
   totalCommits: number;
+  longestSessionHours: number;
 }
 
 export interface DayStats {
