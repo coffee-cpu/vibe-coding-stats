@@ -14,7 +14,11 @@ function App() {
     setStats(null);
 
     try {
-      const stats = await getRepoStats({ url: repoUrl }, {});
+      // Detect if input is a URL or short format (owner/repo)
+      const isUrl = repoUrl.includes('github.com') || repoUrl.startsWith('http');
+      const repoInput = isUrl ? { url: repoUrl } : { repo: repoUrl };
+
+      const stats = await getRepoStats(repoInput, {});
       setStats(stats);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze repository');
