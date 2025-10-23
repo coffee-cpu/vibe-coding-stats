@@ -301,6 +301,9 @@ describe('aggregation logic', () => {
         avgCommitsPerSession: 1,
         avgSessionsPerDay: 1,
         longestSessionHours: 3,
+        avgSessionHours: 3,
+        mostProductiveDayOfWeek: 'Monday',
+        longestStreakDays: 1,
       });
     });
 
@@ -343,6 +346,9 @@ describe('aggregation logic', () => {
         avgCommitsPerSession: 2, // 6 commits / 3 sessions
         avgSessionsPerDay: 1.5, // 3 sessions / 2 days
         longestSessionHours: 4.17, // 250 min
+        avgSessionHours: 2.97, // 8.92 hours / 3 sessions
+        mostProductiveDayOfWeek: 'Monday', // Jan 15 is Monday
+        longestStreakDays: 2, // Jan 15 and Jan 16 are consecutive
       });
     });
 
@@ -392,6 +398,9 @@ describe('aggregation logic', () => {
         avgCommitsPerSession: 0,
         avgSessionsPerDay: 0,
         longestSessionHours: 0,
+        avgSessionHours: 0,
+        mostProductiveDayOfWeek: undefined,
+        longestStreakDays: 0,
       });
     });
 
