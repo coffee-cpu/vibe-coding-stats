@@ -47,6 +47,11 @@ export interface RepoStats {
     avgCommitsPerSession: number;
     avgSessionsPerDay: number;
     longestSessionHours: number;
+    avgSessionHours: number;
+    /** Day of week with most total coding hours (e.g., "Monday", "Tuesday"). Undefined if no sessions. */
+    mostProductiveDayOfWeek?: string;
+    /** Longest consecutive streak of days with commits */
+    longestStreakDays: number;
   };
   perAuthor: AuthorStats[];
   perDay: DayStats[];

@@ -12,9 +12,12 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
     { icon: '⏱️', value: totals.totalHours.toFixed(1), label: 'Total Hours', color: 'from-coffee-500 to-coffee-600' },
     { icon: '💻', value: totals.sessionsCount, label: 'Coding Sessions', color: 'from-coffee-600 to-coffee-700' },
     { icon: '🔥', value: `${totals.longestSessionHours.toFixed(1)}h`, label: 'Longest Session', color: 'from-amber-500 to-orange-600' },
+    { icon: '⏳', value: `${totals.avgSessionHours.toFixed(1)}h`, label: 'Avg Session', color: 'from-blue-500 to-blue-600' },
     { icon: '📅', value: totals.devDays, label: 'Dev Days', color: 'from-cream-500 to-cream-600' },
     { icon: '📝', value: totals.totalCommits, label: 'Total Commits', color: 'from-coffee-400 to-coffee-500' },
     { icon: '📊', value: totals.avgCommitsPerSession.toFixed(2), label: 'Avg Commits/Session', color: 'from-cream-600 to-cream-700' },
+    { icon: '🎯', value: `${totals.longestStreakDays} days`, label: 'Longest Streak', color: 'from-green-500 to-green-600' },
+    ...(totals.mostProductiveDayOfWeek ? [{ icon: '📆', value: totals.mostProductiveDayOfWeek, label: 'Top Day of Week', color: 'from-purple-500 to-purple-600' }] : []),
   ];
 
   return (
