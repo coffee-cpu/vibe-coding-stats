@@ -8,7 +8,17 @@ function ShareButton({ repo }: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
-    const url = `${window.location.origin}${window.location.pathname}?repo=${encodeURIComponent(repo)}`;
+    // Normalize repo to owner/repo format
+    // If it's a full URL, extract owner/repo from it
+    let normalizedRepo = repo;
+    if (repo.includes('github.com')) {
+      const match = repo.match(/github\.com\/([^/]+\/[^/]+)/);
+      if (match) {
+        normalizedRepo = match[1];
+      }
+    }
+
+    const url = `${window.location.origin}${window.location.pathname}?repo=${encodeURIComponent(normalizedRepo)}`;
 
     try {
       await navigator.clipboard.writeText(url);
