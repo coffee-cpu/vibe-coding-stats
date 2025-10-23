@@ -1,4 +1,5 @@
 import { type RepoStats } from 'vibe-coding-stats';
+import ShareButton from './ShareButton';
 
 interface StatsDisplayProps {
   stats: RepoStats;
@@ -21,7 +22,10 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
       {/* Header */}
       <div className="text-center">
         <h2 className="text-3xl font-bold text-coffee-800 mb-2">Repository Statistics</h2>
-        <p className="text-lg text-coffee-600">{repo}</p>
+        <p className="text-lg text-coffee-600 mb-4">{repo}</p>
+        <div className="flex justify-center">
+          <ShareButton repo={repo} />
+        </div>
       </div>
 
       {/* Stats Grid */}

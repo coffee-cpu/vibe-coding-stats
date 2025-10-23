@@ -1,12 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface RepoInputProps {
   onAnalyze: (repoUrl: string) => void;
   loading: boolean;
+  initialRepo?: string;
 }
 
-function RepoInput({ onAnalyze, loading }: RepoInputProps) {
-  const [repoUrl, setRepoUrl] = useState('https://github.com/coffee-cpu/vibe-coding-stats');
+function RepoInput({ onAnalyze, loading, initialRepo }: RepoInputProps) {
+  const [repoUrl, setRepoUrl] = useState(initialRepo || 'https://github.com/coffee-cpu/vibe-coding-stats');
+
+  // Update input when initialRepo changes
+  useEffect(() => {
+    if (initialRepo) {
+      setRepoUrl(initialRepo);
+    }
+  }, [initialRepo]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

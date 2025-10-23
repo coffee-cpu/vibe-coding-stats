@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getRepoStats, type RepoStats } from 'vibe-coding-stats';
 import RepoInput from './components/RepoInput';
 import StatsDisplay from './components/StatsDisplay';
@@ -7,6 +7,36 @@ function App() {
   const [stats, setStats] = useState<RepoStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentRepo, setCurrentRepo] = useState<string>('');
+
+  // Get repo from URL parameter on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const repoParam = params.get('repo');
+
+    if (repoParam) {
+      const analyzeFromUrl = async () => {
+        setCurrentRepo(repoParam);
+        setLoading(true);
+        setError(null);
+        setStats(null);
+
+        try {
+          const isUrl = repoParam.includes('github.com') || repoParam.startsWith('http');
+          const repoInput = isUrl ? { url: repoParam } : { repo: repoParam };
+          const stats = await getRepoStats(repoInput, {});
+          setStats(stats);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to analyze repository');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      analyzeFromUrl();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAnalyze = async (repoUrl: string) => {
     setLoading(true);
@@ -20,6 +50,13 @@ function App() {
 
       const stats = await getRepoStats(repoInput, {});
       setStats(stats);
+      setCurrentRepo(repoUrl);
+
+      // Update URL without reloading the page
+      const params = new URLSearchParams(window.location.search);
+      params.set('repo', repoUrl);
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.pushState({}, '', newUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze repository');
     } finally {
@@ -44,7 +81,7 @@ function App() {
       </header>
 
       <main className="flex-1 max-w-6xl w-full mx-auto space-y-8">
-        <RepoInput onAnalyze={handleAnalyze} loading={loading} />
+        <RepoInput onAnalyze={handleAnalyze} loading={loading} initialRepo={currentRepo} />
 
         {error && (
           <div
