@@ -18,32 +18,29 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-coffee-800 mb-2">Repository Statistics</h2>
-        <p className="text-lg text-coffee-600 mb-4">{repo}</p>
-        <div className="flex justify-center">
-          <ShareButton repo={repo} />
-        </div>
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+        <p className="text-base sm:text-lg text-coffee-600 text-center">{repo} stats</p>
+        <ShareButton repo={repo} />
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4">
         {statCards.map((stat, index) => (
           <div
             key={stat.label}
-            className="bg-white/90 backdrop-blur-sm rounded-xl shadow-warm hover:shadow-warm-lg transition-all duration-300 p-6 border border-coffee-100 hover:border-coffee-300 group"
+            className="bg-white/90 backdrop-blur-sm rounded-xl shadow-warm hover:shadow-warm-lg transition-all duration-300 p-4 border border-coffee-100 hover:border-coffee-300 group"
             style={{ animationDelay: `${index * 100}ms` }}
           >
-            <div className="text-center space-y-3">
-              <div className="text-4xl group-hover:scale-110 transition-transform duration-300">
+            <div className="text-center space-y-2">
+              <div className="text-3xl group-hover:scale-110 transition-transform duration-300">
                 {stat.icon}
               </div>
-              <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+              <div className={`text-2xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
                 {stat.value}
               </div>
-              <div className="text-sm font-semibold text-coffee-700 uppercase tracking-wide">
+              <div className="text-xs font-semibold text-coffee-700 uppercase tracking-wide">
                 {stat.label}
               </div>
             </div>

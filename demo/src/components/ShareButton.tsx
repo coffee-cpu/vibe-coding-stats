@@ -32,17 +32,17 @@ function ShareButton({ repo }: ShareButtonProps) {
   return (
     <button
       onClick={handleShare}
-      className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-coffee-600 to-coffee-700 hover:from-coffee-700 hover:to-coffee-800 text-white font-semibold rounded-lg shadow-warm hover:shadow-warm-lg transition-all"
+      className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-coffee-600 to-coffee-700 hover:from-coffee-700 hover:to-coffee-800 text-white text-sm font-semibold rounded-lg shadow-warm hover:shadow-warm-lg transition-all"
       title="Copy shareable link"
     >
       {copied ? (
         <>
-          <span className="text-lg">✓</span>
+          <span className="text-sm">✓</span>
           <span>Copied!</span>
         </>
       ) : (
         <>
-          <span className="text-lg">🔗</span>
+          <span className="text-sm">🔗</span>
           <span>Share</span>
         </>
       )}
