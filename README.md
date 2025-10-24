@@ -240,8 +240,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 MIT
-
-## Roadmap
-
-- **v0.1**: Core metrics + cross-midnight sessions + GitHub Pages demo
-- **v0.2**: Enhanced caching, progress UI, better visualizations
