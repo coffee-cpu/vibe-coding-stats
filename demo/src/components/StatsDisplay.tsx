@@ -8,6 +8,13 @@ interface StatsDisplayProps {
 function StatsDisplay({ stats }: StatsDisplayProps) {
   const { totals, perAuthor, repo } = stats;
 
+  const formatMinutes = (minutes: number) => {
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const mins = Math.round(minutes % 60);
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  };
+
   const statCards = [
     { icon: '⏱️', value: totals.totalHours.toFixed(1), label: 'Total Hours', color: 'from-coffee-500 to-coffee-600' },
     { icon: '💻', value: totals.sessionsCount, label: 'Coding Sessions', color: 'from-coffee-600 to-coffee-700' },
@@ -18,6 +25,7 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
     { icon: '📊', value: totals.avgCommitsPerSession.toFixed(2), label: 'Avg Commits/Session', color: 'from-cream-600 to-cream-700' },
     { icon: '🎯', value: `${totals.longestStreakDays} days`, label: 'Longest Streak', color: 'from-green-500 to-green-600' },
     ...(totals.mostProductiveDayOfWeek ? [{ icon: '📆', value: totals.mostProductiveDayOfWeek, label: 'Top Day of Week', color: 'from-purple-500 to-purple-600' }] : []),
+    ...(totals.minTimeBetweenSessionsMin !== undefined ? [{ icon: '🛋️', value: formatMinutes(totals.minTimeBetweenSessionsMin), label: 'Min Break Time', color: 'from-teal-500 to-teal-600' }] : []),
   ];
 
   return (

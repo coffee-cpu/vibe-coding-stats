@@ -93,6 +93,9 @@ export function calculateTotals(sessions: Session[]) {
   // Calculate longest streak
   const longestStreakDays = calculateLongestStreakDays(sessions);
 
+  // Calculate minimum time between sessions
+  const minTimeBetweenSessionsMin = calculateMinTimeBetweenSessions(sessions);
+
   return {
     totalHours: Math.round(totalHours * 100) / 100,
     sessionsCount,
@@ -104,6 +107,7 @@ export function calculateTotals(sessions: Session[]) {
     avgSessionHours: Math.round(avgSessionHours * 100) / 100,
     mostProductiveDayOfWeek,
     longestStreakDays,
+    minTimeBetweenSessionsMin,
   };
 }
 
@@ -170,4 +174,48 @@ function calculateLongestStreakDays(sessions: Session[]): number {
   }
 
   return longestStreak;
+}
+
+/**
+ * Calculate the minimum time between consecutive sessions by the same author
+ * Returns undefined if no author has 2 or more sessions
+ */
+function calculateMinTimeBetweenSessions(sessions: Session[]): number | undefined {
+  if (sessions.length < 2) return undefined;
+
+  // Group sessions by author
+  const sessionsByAuthor = new Map<string, Session[]>();
+  for (const session of sessions) {
+    const existing = sessionsByAuthor.get(session.author) || [];
+    existing.push(session);
+    sessionsByAuthor.set(session.author, existing);
+  }
+
+  let minGapMinutes = Infinity;
+
+  // For each author with 2+ sessions, find minimum gap between consecutive sessions
+  for (const authorSessions of sessionsByAuthor.values()) {
+    if (authorSessions.length < 2) continue;
+
+    // Sort this author's sessions by end time
+    const sortedSessions = [...authorSessions].sort((a, b) => a.endTime.getTime() - b.endTime.getTime());
+
+    // Find gaps between consecutive sessions
+    for (let i = 1; i < sortedSessions.length; i++) {
+      const prevSessionEnd = sortedSessions[i - 1].endTime.getTime();
+      const currentSessionStart = sortedSessions[i].startTime.getTime();
+
+      const gapMinutes = (currentSessionStart - prevSessionEnd) / (1000 * 60);
+
+      // Only consider positive gaps (non-overlapping sessions)
+      if (gapMinutes > 0) {
+        minGapMinutes = Math.min(minGapMinutes, gapMinutes);
+      }
+    }
+  }
+
+  // If minGapMinutes is still Infinity, no author had valid gaps between sessions
+  if (minGapMinutes === Infinity) return undefined;
+
+  return Math.round(minGapMinutes * 100) / 100;
 }

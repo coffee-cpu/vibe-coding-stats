@@ -52,6 +52,8 @@ export interface RepoStats {
     mostProductiveDayOfWeek?: string;
     /** Longest consecutive streak of days with commits */
     longestStreakDays: number;
+    /** Minimum time between consecutive sessions by the same author in minutes. Undefined if no author has 2+ sessions. */
+    minTimeBetweenSessionsMin?: number;
   };
   perAuthor: AuthorStats[];
   perDay: DayStats[];

@@ -304,6 +304,7 @@ describe('aggregation logic', () => {
         avgSessionHours: 3,
         mostProductiveDayOfWeek: 'Monday',
         longestStreakDays: 1,
+        minTimeBetweenSessionsMin: undefined, // Only 1 session
       });
     });
 
@@ -349,6 +350,7 @@ describe('aggregation logic', () => {
         avgSessionHours: 2.97, // 8.92 hours / 3 sessions
         mostProductiveDayOfWeek: 'Monday', // Jan 15 is Monday
         longestStreakDays: 2, // Jan 15 and Jan 16 are consecutive
+        minTimeBetweenSessionsMin: 1380, // Alice session 1 ends at 10:00 (last commit), session 2 starts at 09:00 next day = 23 hours = 1380 minutes. Bob only has 1 session so not considered.
       });
     });
 
@@ -401,6 +403,7 @@ describe('aggregation logic', () => {
         avgSessionHours: 0,
         mostProductiveDayOfWeek: undefined,
         longestStreakDays: 0,
+        minTimeBetweenSessionsMin: undefined,
       });
     });
 
@@ -429,6 +432,131 @@ describe('aggregation logic', () => {
       const result = calculateTotals(sessions);
 
       expect(result.devDays).toBe(1); // All on same day
+    });
+
+    it('should calculate minTimeBetweenSessionsMin correctly for same author', () => {
+      // Alice session 1: start=09:00, end=10:00, duration=120min → endTime = 09:00 + 120min = 11:00
+      // Alice session 2: start=14:00, end=14:00, duration=90min → endTime = 14:00 + 90min = 15:30
+      // Alice session 3: start=16:00, end=16:00, duration=60min → endTime = 16:00 + 60min = 17:00
+      // Wait, the createSession helper uses the first and last commit dates as start/end
+      // Let me create sessions with explicit start times
+      const sessions: Session[] = [
+        createSession(
+          'alice',
+          [
+            createCommit('alice', '2024-01-15T09:00:00Z', 'sha1'),
+            createCommit('alice', '2024-01-15T09:30:00Z', 'sha2'),
+          ],
+          60, // Session ends at 09:30 + bonus time
+          '2024-01-15'
+        ),
+        createSession(
+          'alice',
+          [createCommit('alice', '2024-01-15T11:00:00Z', 'sha3')],
+          45,
+          '2024-01-15'
+        ),
+        createSession(
+          'alice',
+          [createCommit('alice', '2024-01-15T13:00:00Z', 'sha4')],
+          30,
+          '2024-01-15'
+        ),
+      ];
+
+      const result = calculateTotals(sessions);
+
+      // Session 1: 09:00 - 09:30, Session 2: 11:00 - 11:00, Session 3: 13:00 - 13:00
+      // Gap 1: 09:30 to 11:00 = 90 min
+      // Gap 2: 11:00 to 13:00 = 120 min
+      expect(result.minTimeBetweenSessionsMin).toBe(90);
+    });
+
+    it('should return undefined for minTimeBetweenSessionsMin with less than 2 sessions', () => {
+      const sessions: Session[] = [
+        createSession(
+          'alice',
+          [createCommit('alice', '2024-01-15T09:00:00Z', 'sha1')],
+          60,
+          '2024-01-15'
+        ),
+      ];
+
+      const result = calculateTotals(sessions);
+
+      expect(result.minTimeBetweenSessionsMin).toBeUndefined();
+    });
+
+    it('should return undefined when no author has multiple sessions', () => {
+      // Alice, Bob, and Charlie each have only 1 session
+      const sessions: Session[] = [
+        createSession(
+          'alice',
+          [
+            createCommit('alice', '2024-01-15T09:00:00Z', 'sha1'),
+            createCommit('alice', '2024-01-15T10:00:00Z', 'sha2'),
+          ],
+          120,
+          '2024-01-15'
+        ),
+        createSession(
+          'bob',
+          [createCommit('bob', '2024-01-15T10:30:00Z', 'sha3')],
+          90,
+          '2024-01-15'
+        ),
+        createSession(
+          'charlie',
+          [createCommit('charlie', '2024-01-15T14:00:00Z', 'sha4')],
+          60,
+          '2024-01-15'
+        ),
+      ];
+
+      const result = calculateTotals(sessions);
+
+      expect(result.minTimeBetweenSessionsMin).toBeUndefined(); // No author has 2+ sessions
+    });
+
+    it('should find minimum gap across multiple authors', () => {
+      // Alice session 1: 09:00-09:00 (single commit)
+      // Alice session 2: 14:00-14:00 (single commit)
+      // Bob session 1: 10:00-10:00 (single commit)
+      // Bob session 2: 10:45-10:45 (single commit)
+      // Alice gap: 09:00 to 14:00 = 300 min
+      // Bob gap: 10:00 to 10:45 = 45 min
+      // Min should be 45 min from Bob
+      const sessions: Session[] = [
+        createSession(
+          'alice',
+          [createCommit('alice', '2024-01-15T09:00:00Z', 'sha1')],
+          120,
+          '2024-01-15'
+        ),
+        createSession(
+          'alice',
+          [createCommit('alice', '2024-01-15T14:00:00Z', 'sha2')],
+          60,
+          '2024-01-15'
+        ),
+        createSession(
+          'bob',
+          [createCommit('bob', '2024-01-15T10:00:00Z', 'sha3')],
+          30,
+          '2024-01-15'
+        ),
+        createSession(
+          'bob',
+          [createCommit('bob', '2024-01-15T10:45:00Z', 'sha4')],
+          45,
+          '2024-01-15'
+        ),
+      ];
+
+      const result = calculateTotals(sessions);
+
+      // Bob session 1 ends at 10:00, session 2 starts at 10:45 = 45 min gap
+      expect(result.minTimeBetweenSessionsMin).toBe(45);
     });
   });
 });
