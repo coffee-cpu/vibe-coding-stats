@@ -3,13 +3,14 @@
 [![npm version](https://img.shields.io/npm/v/vibe-coding-stats.svg)](https://www.npmjs.com/package/vibe-coding-stats)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A TypeScript library for analyzing GitHub repositories to estimate developer activity in a more "human" way — including hours spent coding and coding sessions.
+A TypeScript library for analyzing GitHub repositories to estimate developer activity in a more "human" way — including hours spent coding, coding sessions, and break patterns.
 
 **Optimized for vibe coding workflows** with session-based commit patterns. The default session timeout (45 minutes) and assumptions work best for repositories with frequent, smaller commits rather than infrequent large commits.
 
 ## Features
 
-- 📊 **Coding Metrics**: Estimate total hours, sessions, and commits
+- 📊 **Coding Metrics**: Estimate total hours, sessions, streaks, and commits
+- 📈 **Productivity Insights**: Track longest sessions, average session duration, most productive day of week, and minimum break time
 - 🌍 **Timezone Support**: Convert timestamps to any timezone
 - 🤖 **Bot Filtering**: Automatically exclude bot commits
 - 📅 **Flexible Date Ranges**: Analyze specific time periods
@@ -33,6 +34,7 @@ const stats = await getRepoStats(
 );
 
 console.log(`Total coding hours: ${stats.totals.totalHours}`);
+console.log(`Coding sessions: ${stats.totals.sessionsCount}`);
 ```
 
 ## Usage Examples
@@ -137,6 +139,11 @@ Promise<{
     totalCommits: number;
     avgCommitsPerSession: number;
     avgSessionsPerDay: number;
+    longestSessionHours: number;
+    avgSessionHours: number;
+    mostProductiveDayOfWeek?: string;
+    longestStreakDays: number;
+    minTimeBetweenSessionsMin?: number;
   };
   perAuthor: AuthorStats[];
   perDay: DayStats[];
@@ -184,6 +191,11 @@ Sessions can span across midnight and are treated as a single continuous session
 - **totalCommits**: Total commit count after filtering
 - **avgCommitsPerSession**: totalCommits / sessionsCount
 - **avgSessionsPerDay**: sessionsCount / devDays
+- **longestSessionHours**: Duration of the longest single coding session
+- **avgSessionHours**: Average duration of coding sessions (totalHours / sessionsCount)
+- **mostProductiveDayOfWeek**: Day of week with most total coding hours (e.g., "Monday")
+- **longestStreakDays**: Longest consecutive days with commits
+- **minTimeBetweenSessionsMin**: Minimum time between consecutive sessions by the same author (in minutes)
 
 ## Limitations
 
