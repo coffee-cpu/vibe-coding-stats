@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { type RepoStats } from 'vibe-coding-stats';
 import ShareButton from './ShareButton';
 
@@ -7,6 +8,19 @@ interface StatsDisplayProps {
 
 function StatsDisplay({ stats }: StatsDisplayProps) {
   const { totals, perAuthor, repo } = stats;
+  const [expandedAuthors, setExpandedAuthors] = useState<Set<string>>(new Set());
+
+  const toggleAuthor = (author: string) => {
+    setExpandedAuthors(prev => {
+      const next = new Set(prev);
+      if (next.has(author)) {
+        next.delete(author);
+      } else {
+        next.add(author);
+      }
+      return next;
+    });
+  };
 
   const formatMinutes = (minutes: number) => {
     if (minutes < 60) return `${minutes}m`;
@@ -69,88 +83,106 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
           <span className="text-sm font-normal text-coffee-600">({perAuthor.length})</span>
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {perAuthor.map((author, index) => (
-            <div
-              key={author.author}
-              className="bg-gradient-to-br from-cream-50 to-coffee-50 rounded-xl p-5 border-2 border-coffee-200 hover:border-coffee-400 transition-all duration-300 hover:shadow-warm"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-coffee-600 to-coffee-700 flex items-center justify-center text-white font-bold text-lg shadow-warm">
-                  {author.author.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-coffee-900 truncate" title={author.author}>
-                    {author.author}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+          {perAuthor.map((author, index) => {
+            const isExpanded = expandedAuthors.has(author.author);
+            return (
+              <div
+                key={author.author}
+                className="bg-gradient-to-br from-cream-50 to-coffee-50 rounded-xl p-5 border-2 border-coffee-200 hover:border-coffee-400 transition-all duration-300 hover:shadow-warm"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-coffee-600 to-coffee-700 flex items-center justify-center text-white font-bold text-lg shadow-warm">
+                    {author.author.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-coffee-900 truncate" title={author.author}>
+                      {author.author}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                  <span className="text-coffee-700 font-medium">⏱️ Hours:</span>
-                  <span className="font-bold text-coffee-900">{author.totalHours.toFixed(1)}</span>
-                </div>
-                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                  <span className="text-coffee-700 font-medium">💻 Sessions:</span>
-                  <span className="font-bold text-coffee-900">{author.sessionsCount}</span>
-                </div>
-                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                  <span className="text-coffee-700 font-medium">📅 Dev Days:</span>
-                  <span className="font-bold text-coffee-900">{author.devDays}</span>
-                </div>
-                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                  <span className="text-coffee-700 font-medium">📝 Commits:</span>
-                  <span className="font-bold text-coffee-900">{author.totalCommits}</span>
-                </div>
-                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                  <span className="text-coffee-700 font-medium">🔥 Longest:</span>
-                  <span className="font-bold text-coffee-900">{author.longestSessionHours.toFixed(1)}h</span>
-                </div>
-                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                  <span className="text-coffee-700 font-medium">⏳ Avg Session:</span>
-                  <span className="font-bold text-coffee-900">{author.avgSessionHours.toFixed(1)}h</span>
-                </div>
-                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                  <span className="text-coffee-700 font-medium">📊 Avg Commits/Session:</span>
-                  <span className="font-bold text-coffee-900">{author.avgCommitsPerSession.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                  <span className="text-coffee-700 font-medium">📈 Avg Sessions/Day:</span>
-                  <span className="font-bold text-coffee-900">{author.avgSessionsPerDay.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                  <span className="text-coffee-700 font-medium">🎯 Longest Streak:</span>
-                  <span className="font-bold text-coffee-900">{author.longestStreakDays} days</span>
-                </div>
-                {author.mostProductiveDayOfWeek && (
+                <div className="space-y-2 text-sm">
+                  {/* Always visible metrics */}
                   <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                    <span className="text-coffee-700 font-medium">📆 Top Day:</span>
-                    <span className="font-bold text-coffee-900">{author.mostProductiveDayOfWeek}</span>
+                    <span className="text-coffee-700 font-medium">⏱️ Hours:</span>
+                    <span className="font-bold text-coffee-900">{author.totalHours.toFixed(1)}</span>
                   </div>
-                )}
-                {author.minTimeBetweenSessionsMin !== undefined && (
                   <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                    <span className="text-coffee-700 font-medium">🛋️ Min Break:</span>
-                    <span className="font-bold text-coffee-900">{formatMinutes(author.minTimeBetweenSessionsMin)}</span>
+                    <span className="text-coffee-700 font-medium">💻 Sessions:</span>
+                    <span className="font-bold text-coffee-900">{author.sessionsCount}</span>
                   </div>
-                )}
-                {author.avgMinutesBetweenCommits !== undefined && (
                   <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                    <span className="text-coffee-700 font-medium">⏰ Avg Commit Gap:</span>
-                    <span className="font-bold text-coffee-900">{formatMinutes(author.avgMinutesBetweenCommits)}</span>
+                    <span className="text-coffee-700 font-medium">📝 Commits:</span>
+                    <span className="font-bold text-coffee-900">{author.totalCommits}</span>
                   </div>
-                )}
-                {author.maxMinutesBetweenCommits !== undefined && (
                   <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                    <span className="text-coffee-700 font-medium">⌛ Max Commit Gap:</span>
-                    <span className="font-bold text-coffee-900">{formatMinutes(author.maxMinutesBetweenCommits)}</span>
+                    <span className="text-coffee-700 font-medium">📅 Dev Days:</span>
+                    <span className="font-bold text-coffee-900">{author.devDays}</span>
                   </div>
-                )}
+
+                  {/* Expandable metrics */}
+                  {isExpanded && (
+                    <>
+                      <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                        <span className="text-coffee-700 font-medium">🔥 Longest:</span>
+                        <span className="font-bold text-coffee-900">{author.longestSessionHours.toFixed(1)}h</span>
+                      </div>
+                      <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                        <span className="text-coffee-700 font-medium">⏳ Avg Session:</span>
+                        <span className="font-bold text-coffee-900">{author.avgSessionHours.toFixed(1)}h</span>
+                      </div>
+                      <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                        <span className="text-coffee-700 font-medium">📊 Avg Commits/Session:</span>
+                        <span className="font-bold text-coffee-900">{author.avgCommitsPerSession.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                        <span className="text-coffee-700 font-medium">📈 Avg Sessions/Day:</span>
+                        <span className="font-bold text-coffee-900">{author.avgSessionsPerDay.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                        <span className="text-coffee-700 font-medium">🎯 Longest Streak:</span>
+                        <span className="font-bold text-coffee-900">{author.longestStreakDays} days</span>
+                      </div>
+                      {author.mostProductiveDayOfWeek && (
+                        <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                          <span className="text-coffee-700 font-medium">📆 Top Day:</span>
+                          <span className="font-bold text-coffee-900">{author.mostProductiveDayOfWeek}</span>
+                        </div>
+                      )}
+                      {author.minTimeBetweenSessionsMin !== undefined && (
+                        <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                          <span className="text-coffee-700 font-medium">🛋️ Min Break:</span>
+                          <span className="font-bold text-coffee-900">{formatMinutes(author.minTimeBetweenSessionsMin)}</span>
+                        </div>
+                      )}
+                      {author.avgMinutesBetweenCommits !== undefined && (
+                        <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                          <span className="text-coffee-700 font-medium">⏰ Avg Commit Gap:</span>
+                          <span className="font-bold text-coffee-900">{formatMinutes(author.avgMinutesBetweenCommits)}</span>
+                        </div>
+                      )}
+                      {author.maxMinutesBetweenCommits !== undefined && (
+                        <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                          <span className="text-coffee-700 font-medium">⌛ Max Commit Gap:</span>
+                          <span className="font-bold text-coffee-900">{formatMinutes(author.maxMinutesBetweenCommits)}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Expand/Collapse button */}
+                  <button
+                    onClick={() => toggleAuthor(author.author)}
+                    className="w-full mt-2 py-2 text-center text-coffee-600 hover:text-coffee-800 font-medium text-xs uppercase tracking-wide transition-colors bg-white/40 hover:bg-white/60 rounded-lg"
+                  >
+                    {isExpanded ? '▲ Show Less' : '▼ Show More'}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
