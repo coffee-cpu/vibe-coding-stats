@@ -28,13 +28,71 @@ npm install vibe-coding-stats
 ```typescript
 import { getRepoStats } from 'vibe-coding-stats';
 
-// Analyze a repository
-const stats = await getRepoStats(
-  { repo: 'coffee-cpu/vibe-coding-stats' }
-);
+// Minimal example - uses default settings
+const result = await getRepoStats({ repo: 'coffee-cpu/vibe-coding-stats' });
 
-console.log(`Total coding hours: ${stats.totals.totalHours}`);
-console.log(`Coding sessions: ${stats.totals.sessionsCount}`);
+// All aggregate metrics are in the 'totals' property
+console.log(`Total development time: ${result.totals.totalHours} hours`);
+console.log(`Across ${result.totals.devDays} days of development`);
+console.log(`In ${result.totals.sessionsCount} coding sessions`);
+```
+
+## Response Structure
+
+The `getRepoStats()` function returns a structured object:
+
+```typescript
+{
+  repo: string;              // Repository identifier (e.g., "owner/repo")
+  period: {
+    since?: string;
+    until?: string;
+  };
+  config: {
+    sessionTimeoutMin: number;
+    firstCommitBonusMin: number;
+    timezone: string;
+  };
+  totals: {                  // ← Aggregate statistics across all authors
+    totalHours: number;
+    sessionsCount: number;
+    devDays: number;
+    totalCommits: number;
+    avgCommitsPerSession: number;
+    avgSessionsPerDay: number;
+    longestSessionHours: number;
+    avgSessionHours: number;
+    mostProductiveDayOfWeek?: string;
+    longestStreakDays: number;
+    minTimeBetweenSessionsMin?: number;
+    avgMinutesBetweenCommits?: number;
+    maxMinutesBetweenCommits?: number;
+  };
+  perAuthor: Array<{         // ← Per-author breakdown
+    author: string;
+    email: string;
+    totalHours: number;
+    sessionsCount: number;
+    devDays: number;
+    totalCommits: number;
+    avgCommitsPerSession: number;
+    avgSessionsPerDay: number;
+    longestSessionHours: number;
+    avgSessionHours: number;
+    mostProductiveDayOfWeek?: string;
+    longestStreakDays: number;
+    minTimeBetweenSessionsMin?: number;
+    avgMinutesBetweenCommits?: number;
+    maxMinutesBetweenCommits?: number;
+  }>;
+  perDay: Array<{            // ← Daily breakdown
+    date: string;
+    totalHours: number;
+    sessionsCount: number;
+    totalCommits: number;
+    authors: string[];
+  }>;
+}
 ```
 
 ## Usage Examples
@@ -42,7 +100,7 @@ console.log(`Coding sessions: ${stats.totals.sessionsCount}`);
 ### Personal Coding Stats for 2024
 
 ```typescript
-const myStats = await getRepoStats(
+const result = await getRepoStats(
   { repo: 'coffee-cpu/vibe-coding-stats' },
   {
     since: '2024-01-01',
@@ -50,12 +108,16 @@ const myStats = await getRepoStats(
     authors: ['coffee-cpu'],
   }
 );
+
+console.log(`In 2024, you coded for ${result.totals.totalHours} hours`);
+console.log(`Longest session: ${result.totals.longestSessionHours} hours`);
+console.log(`Most productive day: ${result.totals.mostProductiveDayOfWeek}`);
 ```
 
 ### Last 30 Days with Timezone
 
 ```typescript
-const recentStats = await getRepoStats(
+const result = await getRepoStats(
   { url: 'https://github.com/coffee-cpu/vibe-coding-stats' },
   {
     since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -63,11 +125,15 @@ const recentStats = await getRepoStats(
   }
 );
 
+// Access totals
+console.log(`Total hours (last 30 days): ${result.totals.totalHours}`);
+console.log(`Sessions: ${result.totals.sessionsCount}`);
+
 // View per-author breakdown
-recentStats.perAuthor.forEach(author => {
+result.perAuthor.forEach(author => {
   console.log(`${author.author}: ${author.totalHours}h, ${author.sessionsCount} sessions`);
   if (author.avgMinutesBetweenCommits) {
-    console.log(`  Avg commit gap: ${author.avgMinutesBetweenCommits} minutes`);
+    console.log(`  Avg commit gap: ${author.avgMinutesBetweenCommits.toFixed(1)} minutes`);
   }
 });
 ```
@@ -75,12 +141,15 @@ recentStats.perAuthor.forEach(author => {
 ### With GitHub Token (Higher Rate Limits)
 
 ```typescript
-const stats = await getRepoStats(
+const result = await getRepoStats(
   { repo: 'coffee-cpu/vibe-coding-stats' },
   {
     githubToken: process.env.GITHUB_TOKEN,
   }
 );
+
+console.log(`Total hours: ${result.totals.totalHours}`);
+console.log(`Commits: ${result.totals.totalCommits}`);
 ```
 
 ## API Reference
@@ -166,6 +235,52 @@ clearCache();
 // Get number of cached entries
 const size = getCacheSize();
 console.log(`Cache has ${size} entries`);
+```
+
+## Common Pitfalls
+
+### GitHub Rate Limiting
+
+Unauthenticated requests are limited to 60 per hour. For production use or analyzing large repositories, provide a GitHub token:
+
+```typescript
+const result = await getRepoStats(
+  { repo: 'owner/repo' },
+  { githubToken: process.env.GITHUB_TOKEN }
+);
+```
+
+Get a GitHub token from: https://github.com/settings/tokens (requires `public_repo` scope for public repos)
+
+## TypeScript Support
+
+The package includes full TypeScript type definitions:
+
+```typescript
+import { getRepoStats, type RepoStats } from 'vibe-coding-stats';
+
+async function fetchStats(): Promise<RepoStats> {
+  const result = await getRepoStats(
+    { repo: 'owner/repo' },
+    { sessionTimeoutMin: 45 }
+  );
+
+  // TypeScript knows the structure of result.totals
+  const hours: number = result.totals.totalHours;
+
+  return result;
+}
+```
+
+You can also import individual types:
+
+```typescript
+import type {
+  RepoStats,
+  AuthorStats,
+  DayStats,
+  StatsOptions
+} from 'vibe-coding-stats';
 ```
 
 ## How It Works
