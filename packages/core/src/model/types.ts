@@ -31,6 +31,27 @@ export interface StatsOptions {
 }
 
 // Output types
+export interface AggregateStats {
+  totalHours: number;
+  sessionsCount: number;
+  devDays: number;
+  totalCommits: number;
+  avgCommitsPerSession: number;
+  avgSessionsPerDay: number;
+  longestSessionHours: number;
+  avgSessionHours: number;
+  /** Day of week with most total coding hours (e.g., "Monday", "Tuesday"). Undefined if no sessions. */
+  mostProductiveDayOfWeek?: string;
+  /** Longest consecutive streak of days with commits */
+  longestStreakDays: number;
+  /** Minimum time between consecutive sessions by the same author in minutes. Undefined if no author has 2+ sessions. */
+  minTimeBetweenSessionsMin?: number;
+  /** Average time in minutes between consecutive commits within sessions across all authors. Undefined if all sessions are single-commit. */
+  avgMinutesBetweenCommits?: number;
+  /** Maximum time in minutes between consecutive commits within sessions across all authors. Undefined if all sessions are single-commit. */
+  maxMinutesBetweenCommits?: number;
+}
+
 export interface RepoStats {
   repo: string;
   period: { since?: string; until?: string };
@@ -39,26 +60,7 @@ export interface RepoStats {
     firstCommitBonusMin: number;
     timezone: string;
   };
-  totals: {
-    totalHours: number;
-    sessionsCount: number;
-    devDays: number;
-    totalCommits: number;
-    avgCommitsPerSession: number;
-    avgSessionsPerDay: number;
-    longestSessionHours: number;
-    avgSessionHours: number;
-    /** Day of week with most total coding hours (e.g., "Monday", "Tuesday"). Undefined if no sessions. */
-    mostProductiveDayOfWeek?: string;
-    /** Longest consecutive streak of days with commits */
-    longestStreakDays: number;
-    /** Minimum time between consecutive sessions by the same author in minutes. Undefined if no author has 2+ sessions. */
-    minTimeBetweenSessionsMin?: number;
-    /** Average time in minutes between consecutive commits within sessions across all authors. Undefined if all sessions are single-commit. */
-    avgMinutesBetweenCommits?: number;
-    /** Maximum time in minutes between consecutive commits within sessions across all authors. Undefined if all sessions are single-commit. */
-    maxMinutesBetweenCommits?: number;
-  };
+  totals: AggregateStats;
   perAuthor: AuthorStats[];
   perDay: DayStats[];
   raw?: {
@@ -71,16 +73,8 @@ export interface RepoStats {
   };
 }
 
-export interface AuthorStats {
+export interface AuthorStats extends AggregateStats {
   author: string;
-  totalHours: number;
-  sessionsCount: number;
-  totalCommits: number;
-  longestSessionHours: number;
-  /** Average time in minutes between consecutive commits within sessions. Undefined if author has only single-commit sessions. */
-  avgMinutesBetweenCommits?: number;
-  /** Maximum time in minutes between consecutive commits within sessions. Undefined if author has only single-commit sessions. */
-  maxMinutesBetweenCommits?: number;
 }
 
 export interface DayStats {
