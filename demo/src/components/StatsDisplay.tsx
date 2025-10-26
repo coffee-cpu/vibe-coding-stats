@@ -9,6 +9,7 @@ interface StatsDisplayProps {
 function StatsDisplay({ stats }: StatsDisplayProps) {
   const { totals, perAuthor, repo } = stats;
   const [expandedAuthors, setExpandedAuthors] = useState<Set<string>>(new Set());
+  const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
 
   const toggleAuthor = (author: string) => {
     setExpandedAuthors(prev => {
@@ -27,6 +28,21 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
     const hours = Math.floor(minutes / 60);
     const mins = Math.round(minutes % 60);
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  };
+
+  const metricExplanations: Record<string, string> = {
+    'Total Hours': 'Sum of all coding session durations. Sessions are groups of commits within 45 minutes of each other.',
+    'Coding Sessions': 'Number of distinct coding sessions. A new session starts after 45+ minutes of inactivity.',
+    'Longest Session': 'Duration of the longest single coding session in the repository.',
+    'Avg Session': 'Average duration of coding sessions across all contributors.',
+    'Dev Days': 'Number of calendar days with at least one commit.',
+    'Total Commits': 'Total number of commits after filtering (e.g., excluding bots).',
+    'Avg Commits/Session': 'Average number of commits made during each coding session.',
+    'Longest Streak': 'Longest consecutive streak of days with commits.',
+    'Top Day of Week': 'Day of the week with the most total coding hours.',
+    'Min Break Time': 'Minimum time between consecutive coding sessions by the same author.',
+    'Avg Commit Gap': 'Average time between consecutive commits within sessions.',
+    'Max Commit Gap': 'Maximum time between consecutive commits within sessions.',
   };
 
   const statCards = [
@@ -55,9 +71,10 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4">
         {statCards.map((stat, index) => (
-          <div
+          <button
             key={stat.label}
-            className="bg-white/90 backdrop-blur-sm rounded-xl shadow-warm hover:shadow-warm-lg transition-all duration-300 p-4 border border-coffee-100 hover:border-coffee-300 group"
+            onClick={() => setSelectedMetric(stat.label)}
+            className="bg-white/90 backdrop-blur-sm rounded-xl shadow-warm hover:shadow-warm-lg transition-all duration-300 p-4 border border-coffee-100 hover:border-coffee-300 group cursor-pointer"
             style={{ animationDelay: `${index * 100}ms` }}
           >
             <div className="text-center space-y-2">
@@ -71,9 +88,35 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
                 {stat.label}
               </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
+
+      {/* Explanation Modal */}
+      {selectedMetric && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedMetric(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <h3 className="text-xl font-bold text-coffee-900">{selectedMetric}</h3>
+              <button
+                onClick={() => setSelectedMetric(null)}
+                className="text-coffee-500 hover:text-coffee-700 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-coffee-700 leading-relaxed">
+              {metricExplanations[selectedMetric]}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Contributors Section */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-warm-lg p-6 lg:p-8 border border-coffee-200">
