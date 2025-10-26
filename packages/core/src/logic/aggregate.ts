@@ -1,113 +1,10 @@
-import type { Session, AuthorStats, DayStats } from '../model/types.js';
+import type { Session, AuthorStats, DayStats, AggregateStats } from '../model/types.js';
 
 /**
- * Aggregate sessions into per-author statistics
+ * Calculate aggregate statistics from a set of sessions
+ * This shared function is used for both totals and per-author stats
  */
-export function aggregateByAuthor(sessions: Session[]): AuthorStats[] {
-  const authorMap = new Map<string, {
-    totalHours: number;
-    sessionsCount: number;
-    totalCommits: number;
-    longestSessionHours: number;
-    commitGaps: number[];
-    maxCommitGap: number;
-  }>();
-
-  for (const session of sessions) {
-    const sessionHours = session.durationMinutes / 60;
-    const existing = authorMap.get(session.author);
-
-    if (existing) {
-      existing.totalHours += sessionHours;
-      existing.sessionsCount += 1;
-      existing.totalCommits += session.commits.length;
-      existing.longestSessionHours = Math.max(existing.longestSessionHours, sessionHours);
-
-      // Accumulate commit gaps for averaging
-      if (session.avgMinutesBetweenCommits !== undefined) {
-        // Weight the average by number of gaps in this session
-        const numGaps = session.commits.length - 1;
-        existing.commitGaps.push(...Array(numGaps).fill(session.avgMinutesBetweenCommits));
-      }
-      if (session.maxMinutesBetweenCommits !== undefined) {
-        existing.maxCommitGap = Math.max(existing.maxCommitGap, session.maxMinutesBetweenCommits);
-      }
-    } else {
-      const commitGaps: number[] = [];
-      if (session.avgMinutesBetweenCommits !== undefined) {
-        const numGaps = session.commits.length - 1;
-        commitGaps.push(...Array(numGaps).fill(session.avgMinutesBetweenCommits));
-      }
-
-      authorMap.set(session.author, {
-        totalHours: sessionHours,
-        sessionsCount: 1,
-        totalCommits: session.commits.length,
-        longestSessionHours: sessionHours,
-        commitGaps,
-        maxCommitGap: session.maxMinutesBetweenCommits ?? 0,
-      });
-    }
-  }
-
-  // Convert to AuthorStats and calculate final metrics
-  return Array.from(authorMap.entries())
-    .map(([author, data]) => {
-      const avgMinutesBetweenCommits = data.commitGaps.length > 0
-        ? Math.round((data.commitGaps.reduce((sum, gap) => sum + gap, 0) / data.commitGaps.length) * 100) / 100
-        : undefined;
-
-      const maxMinutesBetweenCommits = data.maxCommitGap > 0
-        ? Math.round(data.maxCommitGap * 100) / 100
-        : undefined;
-
-      return {
-        author,
-        totalHours: Math.round(data.totalHours * 100) / 100,
-        sessionsCount: data.sessionsCount,
-        totalCommits: data.totalCommits,
-        longestSessionHours: Math.round(data.longestSessionHours * 100) / 100,
-        avgMinutesBetweenCommits,
-        maxMinutesBetweenCommits,
-      };
-    })
-    .sort((a, b) => b.totalHours - a.totalHours);
-}
-
-/**
- * Aggregate sessions into per-day statistics
- */
-export function aggregateByDay(sessions: Session[]): DayStats[] {
-  const dayMap = new Map<string, DayStats>();
-
-  for (const session of sessions) {
-    const existing = dayMap.get(session.date);
-
-    if (existing) {
-      existing.totalHours += session.durationMinutes / 60;
-      existing.sessionsCount += 1;
-      existing.totalCommits += session.commits.length;
-      if (!existing.authors.includes(session.author)) {
-        existing.authors.push(session.author);
-      }
-    } else {
-      dayMap.set(session.date, {
-        date: session.date,
-        totalHours: session.durationMinutes / 60,
-        sessionsCount: 1,
-        totalCommits: session.commits.length,
-        authors: [session.author],
-      });
-    }
-  }
-
-  return Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-}
-
-/**
- * Calculate total statistics from sessions
- */
-export function calculateTotals(sessions: Session[]) {
+export function calculateAggregateStats(sessions: Session[]): AggregateStats {
   const totalHours = sessions.reduce((sum, s) => sum + s.durationMinutes / 60, 0);
   const sessionsCount = sessions.length;
   const totalCommits = sessions.reduce((sum, s) => sum + s.commits.length, 0);
@@ -171,6 +68,65 @@ export function calculateTotals(sessions: Session[]) {
     avgMinutesBetweenCommits,
     maxMinutesBetweenCommits,
   };
+}
+
+/**
+ * Aggregate sessions into per-author statistics
+ */
+export function aggregateByAuthor(sessions: Session[]): AuthorStats[] {
+  // Group sessions by author
+  const sessionsByAuthor = new Map<string, Session[]>();
+
+  for (const session of sessions) {
+    const existing = sessionsByAuthor.get(session.author) || [];
+    existing.push(session);
+    sessionsByAuthor.set(session.author, existing);
+  }
+
+  // Calculate stats for each author using the shared function
+  return Array.from(sessionsByAuthor.entries())
+    .map(([author, authorSessions]) => ({
+      author,
+      ...calculateAggregateStats(authorSessions),
+    }))
+    .sort((a, b) => b.totalHours - a.totalHours);
+}
+
+/**
+ * Aggregate sessions into per-day statistics
+ */
+export function aggregateByDay(sessions: Session[]): DayStats[] {
+  const dayMap = new Map<string, DayStats>();
+
+  for (const session of sessions) {
+    const existing = dayMap.get(session.date);
+
+    if (existing) {
+      existing.totalHours += session.durationMinutes / 60;
+      existing.sessionsCount += 1;
+      existing.totalCommits += session.commits.length;
+      if (!existing.authors.includes(session.author)) {
+        existing.authors.push(session.author);
+      }
+    } else {
+      dayMap.set(session.date, {
+        date: session.date,
+        totalHours: session.durationMinutes / 60,
+        sessionsCount: 1,
+        totalCommits: session.commits.length,
+        authors: [session.author],
+      });
+    }
+  }
+
+  return Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Calculate total statistics from sessions
+ */
+export function calculateTotals(sessions: Session[]): AggregateStats {
+  return calculateAggregateStats(sessions);
 }
 
 /**
