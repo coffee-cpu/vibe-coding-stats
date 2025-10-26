@@ -10,7 +10,7 @@ A TypeScript library for analyzing GitHub repositories to estimate developer act
 ## Features
 
 - 📊 **Coding Metrics**: Estimate total hours, sessions, streaks, and commits
-- 📈 **Productivity Insights**: Track longest sessions, average session duration, most productive day of week, and minimum break time
+- 📈 **Productivity Insights**: Track longest sessions, average session duration, most productive day of week, minimum break time, and commit frequency patterns
 - 🌍 **Timezone Support**: Convert timestamps to any timezone
 - 🤖 **Bot Filtering**: Automatically exclude bot commits
 - 📅 **Flexible Date Ranges**: Analyze specific time periods
@@ -66,6 +66,9 @@ const recentStats = await getRepoStats(
 // View per-author breakdown
 recentStats.perAuthor.forEach(author => {
   console.log(`${author.author}: ${author.totalHours}h, ${author.sessionsCount} sessions`);
+  if (author.avgMinutesBetweenCommits) {
+    console.log(`  Avg commit gap: ${author.avgMinutesBetweenCommits} minutes`);
+  }
 });
 ```
 
@@ -144,6 +147,8 @@ Promise<{
     mostProductiveDayOfWeek?: string;
     longestStreakDays: number;
     minTimeBetweenSessionsMin?: number;
+    avgMinutesBetweenCommits?: number;
+    maxMinutesBetweenCommits?: number;
   };
   perAuthor: AuthorStats[];
   perDay: DayStats[];
@@ -196,6 +201,8 @@ Sessions can span across midnight and are treated as a single continuous session
 - **mostProductiveDayOfWeek**: Day of week with most total coding hours (e.g., "Monday")
 - **longestStreakDays**: Longest consecutive days with commits
 - **minTimeBetweenSessionsMin**: Minimum time between consecutive sessions by the same author (in minutes)
+- **avgMinutesBetweenCommits**: Average time in minutes between consecutive commits within sessions (undefined if all sessions are single-commit)
+- **maxMinutesBetweenCommits**: Maximum time in minutes between consecutive commits within sessions (undefined if all sessions are single-commit)
 
 ## Limitations
 
