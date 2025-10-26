@@ -93,26 +93,58 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
                   <span className="font-bold text-coffee-900">{author.totalHours.toFixed(1)}</span>
                 </div>
                 <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                  <span className="text-coffee-700 font-medium">🔥 Longest:</span>
-                  <span className="font-bold text-coffee-900">{author.longestSessionHours.toFixed(1)}h</span>
-                </div>
-                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                   <span className="text-coffee-700 font-medium">💻 Sessions:</span>
                   <span className="font-bold text-coffee-900">{author.sessionsCount}</span>
+                </div>
+                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                  <span className="text-coffee-700 font-medium">📅 Dev Days:</span>
+                  <span className="font-bold text-coffee-900">{author.devDays}</span>
                 </div>
                 <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                   <span className="text-coffee-700 font-medium">📝 Commits:</span>
                   <span className="font-bold text-coffee-900">{author.totalCommits}</span>
                 </div>
+                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                  <span className="text-coffee-700 font-medium">🔥 Longest:</span>
+                  <span className="font-bold text-coffee-900">{author.longestSessionHours.toFixed(1)}h</span>
+                </div>
+                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                  <span className="text-coffee-700 font-medium">⏳ Avg Session:</span>
+                  <span className="font-bold text-coffee-900">{author.avgSessionHours.toFixed(1)}h</span>
+                </div>
+                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                  <span className="text-coffee-700 font-medium">📊 Avg Commits/Session:</span>
+                  <span className="font-bold text-coffee-900">{author.avgCommitsPerSession.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                  <span className="text-coffee-700 font-medium">📈 Avg Sessions/Day:</span>
+                  <span className="font-bold text-coffee-900">{author.avgSessionsPerDay.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                  <span className="text-coffee-700 font-medium">🎯 Longest Streak:</span>
+                  <span className="font-bold text-coffee-900">{author.longestStreakDays} days</span>
+                </div>
+                {author.mostProductiveDayOfWeek && (
+                  <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                    <span className="text-coffee-700 font-medium">📆 Top Day:</span>
+                    <span className="font-bold text-coffee-900">{author.mostProductiveDayOfWeek}</span>
+                  </div>
+                )}
+                {author.minTimeBetweenSessionsMin !== undefined && (
+                  <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                    <span className="text-coffee-700 font-medium">🛋️ Min Break:</span>
+                    <span className="font-bold text-coffee-900">{formatMinutes(author.minTimeBetweenSessionsMin)}</span>
+                  </div>
+                )}
                 {author.avgMinutesBetweenCommits !== undefined && (
                   <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                    <span className="text-coffee-700 font-medium">⏰ Avg Gap:</span>
+                    <span className="text-coffee-700 font-medium">⏰ Avg Commit Gap:</span>
                     <span className="font-bold text-coffee-900">{formatMinutes(author.avgMinutesBetweenCommits)}</span>
                   </div>
                 )}
                 {author.maxMinutesBetweenCommits !== undefined && (
                   <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                    <span className="text-coffee-700 font-medium">⌛ Max Gap:</span>
+                    <span className="text-coffee-700 font-medium">⌛ Max Commit Gap:</span>
                     <span className="font-bold text-coffee-900">{formatMinutes(author.maxMinutesBetweenCommits)}</span>
                   </div>
                 )}
