@@ -37,9 +37,10 @@ For single-commit sessions: `duration = firstCommitBonusMin` (default: 15 minute
 ### Key Types
 
 - **`RepoStats`** - Main output with totals, perAuthor, perDay breakdowns
-- **`AuthorStats`** - Per-author metrics (hours, sessions, commits)
+- **`AuthorStats`** - Per-author metrics (hours, sessions, commits, commit gaps)
 - **`DayStats`** - Per-day metrics with list of active authors
 - **`StatsOptions`** - Configuration (timeouts, date ranges, filters, caching)
+- **`Session`** - Internal type for coding sessions with duration and commit gap metrics
 
 ### Package Structure
 
@@ -145,8 +146,6 @@ Use the `StatsError` class with structured error codes:
 
 ## Development Commands
 
-**Note**: This project is currently in specification phase. Once initialized, typical commands will be:
-
 ```bash
 # Install dependencies (monorepo)
 npm install
@@ -206,12 +205,25 @@ npm run build -w demo
 
 ## Metrics Definitions
 
+### Session-Level Metrics
+- **durationMinutes**: Time from first to last commit + firstCommitBonusMin
+- **avgMinutesBetweenCommits**: Average gap between consecutive commits (undefined for single-commit sessions)
+- **maxMinutesBetweenCommits**: Maximum gap between consecutive commits (undefined for single-commit sessions)
+
+### Aggregate Metrics
 - **totalHours**: Sum of all session durations
 - **sessionsCount**: Number of distinct coding sessions
 - **devDays**: Number of calendar days with at least one commit
 - **totalCommits**: Total commit count after filtering
 - **avgCommitsPerSession**: totalCommits / sessionsCount
 - **avgSessionsPerDay**: sessionsCount / devDays
+- **longestSessionHours**: Duration of the longest single coding session
+- **avgSessionHours**: Average duration of coding sessions
+- **mostProductiveDayOfWeek**: Day of week with most total coding hours
+- **longestStreakDays**: Longest consecutive days with commits
+- **minTimeBetweenSessionsMin**: Minimum break time between sessions by the same author
+- **avgMinutesBetweenCommits**: Average commit gap across all sessions
+- **maxMinutesBetweenCommits**: Maximum commit gap across all sessions
 
 ## Known Limitations
 
@@ -242,7 +254,7 @@ These are inherent to the approach and should be documented but not "fixed":
 - Test each layer independently with mocked dependencies
 - Integration tests should cover the full pipeline (see `integration.test.ts`)
 - When refactoring, ensure all existing tests still pass
-- Current test count: 96 tests across 6 test files
+- Current test count: 112 tests across 6 test files
 
 ### Build Configuration
 
@@ -289,8 +301,9 @@ const transformed = filtered.map(transform);
 - Keep all filtering logic in `logic/filters.ts`
 - Filtering happens BEFORE transformation to reduce processing
 
-## Future Roadmap
+## Testing and Best Practices
 
-- **v0.2**: Enhanced caching, progress UI, better visualizations
-- **v0.3**: GraphQL support, file-level statistics
-- always use https://github.com/coffee-cpu/vibe-coding-stats.git as a testing repo
+- Always use https://github.com/coffee-cpu/vibe-coding-stats.git as a testing repo
+- Always update README when you make changes to the core library API
+- Run all tests before publishing: `npm test -w packages/core`
+- Current version: 1.3.0 (includes commit gap metrics)
