@@ -249,4 +249,62 @@ describe('session grouping', () => {
       expect(sessions[0].commits[2].sha).toBe('sha2');
     });
   });
+
+  describe('commit gap metrics', () => {
+    it('should not calculate gaps for single-commit sessions', () => {
+      const commits = [createCommit('alice', '2024-01-15T14:00:00Z', 'sha1')];
+
+      const sessions = buildSessions(commits, defaultConfig);
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].avgMinutesBetweenCommits).toBeUndefined();
+      expect(sessions[0].maxMinutesBetweenCommits).toBeUndefined();
+    });
+
+    it('should calculate average and max gaps for multi-commit sessions', () => {
+      const commits = [
+        createCommit('alice', '2024-01-15T14:00:00Z', 'sha1'),
+        createCommit('alice', '2024-01-15T14:10:00Z', 'sha2'), // 10 min gap
+        createCommit('alice', '2024-01-15T14:30:00Z', 'sha3'), // 20 min gap
+        createCommit('alice', '2024-01-15T14:45:00Z', 'sha4'), // 15 min gap
+      ];
+
+      const sessions = buildSessions(commits, defaultConfig);
+
+      expect(sessions).toHaveLength(1);
+      // Average: (10 + 20 + 15) / 3 = 15
+      expect(sessions[0].avgMinutesBetweenCommits).toBe(15);
+      // Max: 20
+      expect(sessions[0].maxMinutesBetweenCommits).toBe(20);
+    });
+
+    it('should calculate gaps correctly for two-commit session', () => {
+      const commits = [
+        createCommit('alice', '2024-01-15T14:00:00Z', 'sha1'),
+        createCommit('alice', '2024-01-15T14:25:00Z', 'sha2'), // 25 min gap
+      ];
+
+      const sessions = buildSessions(commits, defaultConfig);
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].avgMinutesBetweenCommits).toBe(25);
+      expect(sessions[0].maxMinutesBetweenCommits).toBe(25);
+    });
+
+    it('should handle uneven gaps', () => {
+      const commits = [
+        createCommit('alice', '2024-01-15T14:00:00Z', 'sha1'),
+        createCommit('alice', '2024-01-15T14:05:00Z', 'sha2'), // 5 min gap
+        createCommit('alice', '2024-01-15T14:45:00Z', 'sha3'), // 40 min gap (close to timeout)
+      ];
+
+      const sessions = buildSessions(commits, defaultConfig);
+
+      expect(sessions).toHaveLength(1);
+      // Average: (5 + 40) / 2 = 22.5
+      expect(sessions[0].avgMinutesBetweenCommits).toBe(22.5);
+      // Max: 40
+      expect(sessions[0].maxMinutesBetweenCommits).toBe(40);
+    });
+  });
 });

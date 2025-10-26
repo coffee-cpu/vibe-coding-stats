@@ -86,6 +86,22 @@ function createSession(
   // Session date is the day it started (in configured timezone)
   const date = toISODate(startTime, timezone);
 
+  // Calculate commit gap metrics (only for multi-commit sessions)
+  let avgMinutesBetweenCommits: number | undefined;
+  let maxMinutesBetweenCommits: number | undefined;
+
+  if (commits.length > 1) {
+    const gaps: number[] = [];
+    for (let i = 1; i < commits.length; i++) {
+      const gap = diffInMinutes(commits[i].date, commits[i - 1].date);
+      gaps.push(gap);
+    }
+
+    const totalGap = gaps.reduce((sum, gap) => sum + gap, 0);
+    avgMinutesBetweenCommits = Math.round((totalGap / gaps.length) * 100) / 100;
+    maxMinutesBetweenCommits = Math.round(Math.max(...gaps) * 100) / 100;
+  }
+
   return {
     author,
     commits,
@@ -93,5 +109,7 @@ function createSession(
     endTime,
     durationMinutes,
     date,
+    avgMinutesBetweenCommits,
+    maxMinutesBetweenCommits,
   };
 }

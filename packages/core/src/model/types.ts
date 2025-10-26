@@ -54,6 +54,10 @@ export interface RepoStats {
     longestStreakDays: number;
     /** Minimum time between consecutive sessions by the same author in minutes. Undefined if no author has 2+ sessions. */
     minTimeBetweenSessionsMin?: number;
+    /** Average time in minutes between consecutive commits within sessions across all authors. Undefined if all sessions are single-commit. */
+    avgMinutesBetweenCommits?: number;
+    /** Maximum time in minutes between consecutive commits within sessions across all authors. Undefined if all sessions are single-commit. */
+    maxMinutesBetweenCommits?: number;
   };
   perAuthor: AuthorStats[];
   perDay: DayStats[];
@@ -73,6 +77,10 @@ export interface AuthorStats {
   sessionsCount: number;
   totalCommits: number;
   longestSessionHours: number;
+  /** Average time in minutes between consecutive commits within sessions. Undefined if author has only single-commit sessions. */
+  avgMinutesBetweenCommits?: number;
+  /** Maximum time in minutes between consecutive commits within sessions. Undefined if author has only single-commit sessions. */
+  maxMinutesBetweenCommits?: number;
 }
 
 export interface DayStats {
@@ -101,6 +109,10 @@ export interface Session {
   endTime: Date;
   durationMinutes: number;
   date: string; // ISO date string of session start in configured timezone
+  /** Average time in minutes between consecutive commits in this session. Undefined for single-commit sessions. */
+  avgMinutesBetweenCommits?: number;
+  /** Maximum time in minutes between consecutive commits in this session. Undefined for single-commit sessions. */
+  maxMinutesBetweenCommits?: number;
 }
 
 // Error types

@@ -26,6 +26,8 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
     { icon: '🎯', value: `${totals.longestStreakDays} days`, label: 'Longest Streak', color: 'from-green-500 to-green-600' },
     ...(totals.mostProductiveDayOfWeek ? [{ icon: '📆', value: totals.mostProductiveDayOfWeek, label: 'Top Day of Week', color: 'from-purple-500 to-purple-600' }] : []),
     ...(totals.minTimeBetweenSessionsMin !== undefined ? [{ icon: '🛋️', value: formatMinutes(totals.minTimeBetweenSessionsMin), label: 'Min Break Time', color: 'from-teal-500 to-teal-600' }] : []),
+    ...(totals.avgMinutesBetweenCommits !== undefined ? [{ icon: '⏰', value: formatMinutes(totals.avgMinutesBetweenCommits), label: 'Avg Commit Gap', color: 'from-indigo-500 to-indigo-600' }] : []),
+    ...(totals.maxMinutesBetweenCommits !== undefined ? [{ icon: '⌛', value: formatMinutes(totals.maxMinutesBetweenCommits), label: 'Max Commit Gap', color: 'from-rose-500 to-rose-600' }] : []),
   ];
 
   return (
@@ -102,6 +104,18 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
                   <span className="text-coffee-700 font-medium">📝 Commits:</span>
                   <span className="font-bold text-coffee-900">{author.totalCommits}</span>
                 </div>
+                {author.avgMinutesBetweenCommits !== undefined && (
+                  <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                    <span className="text-coffee-700 font-medium">⏰ Avg Gap:</span>
+                    <span className="font-bold text-coffee-900">{formatMinutes(author.avgMinutesBetweenCommits)}</span>
+                  </div>
+                )}
+                {author.maxMinutesBetweenCommits !== undefined && (
+                  <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
+                    <span className="text-coffee-700 font-medium">⌛ Max Gap:</span>
+                    <span className="font-bold text-coffee-900">{formatMinutes(author.maxMinutesBetweenCommits)}</span>
+                  </div>
+                )}
               </div>
             </div>
           ))}

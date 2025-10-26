@@ -4,7 +4,14 @@ import type { Session, AuthorStats, DayStats } from '../model/types.js';
  * Aggregate sessions into per-author statistics
  */
 export function aggregateByAuthor(sessions: Session[]): AuthorStats[] {
-  const authorMap = new Map<string, AuthorStats>();
+  const authorMap = new Map<string, {
+    totalHours: number;
+    sessionsCount: number;
+    totalCommits: number;
+    longestSessionHours: number;
+    commitGaps: number[];
+    maxCommitGap: number;
+  }>();
 
   for (const session of sessions) {
     const sessionHours = session.durationMinutes / 60;
@@ -15,24 +22,55 @@ export function aggregateByAuthor(sessions: Session[]): AuthorStats[] {
       existing.sessionsCount += 1;
       existing.totalCommits += session.commits.length;
       existing.longestSessionHours = Math.max(existing.longestSessionHours, sessionHours);
+
+      // Accumulate commit gaps for averaging
+      if (session.avgMinutesBetweenCommits !== undefined) {
+        // Weight the average by number of gaps in this session
+        const numGaps = session.commits.length - 1;
+        existing.commitGaps.push(...Array(numGaps).fill(session.avgMinutesBetweenCommits));
+      }
+      if (session.maxMinutesBetweenCommits !== undefined) {
+        existing.maxCommitGap = Math.max(existing.maxCommitGap, session.maxMinutesBetweenCommits);
+      }
     } else {
+      const commitGaps: number[] = [];
+      if (session.avgMinutesBetweenCommits !== undefined) {
+        const numGaps = session.commits.length - 1;
+        commitGaps.push(...Array(numGaps).fill(session.avgMinutesBetweenCommits));
+      }
+
       authorMap.set(session.author, {
-        author: session.author,
         totalHours: sessionHours,
         sessionsCount: 1,
         totalCommits: session.commits.length,
         longestSessionHours: sessionHours,
+        commitGaps,
+        maxCommitGap: session.maxMinutesBetweenCommits ?? 0,
       });
     }
   }
 
-  // Round totalHours and longestSessionHours to 2 decimal places for each author
-  return Array.from(authorMap.values())
-    .map((stats) => ({
-      ...stats,
-      totalHours: Math.round(stats.totalHours * 100) / 100,
-      longestSessionHours: Math.round(stats.longestSessionHours * 100) / 100,
-    }))
+  // Convert to AuthorStats and calculate final metrics
+  return Array.from(authorMap.entries())
+    .map(([author, data]) => {
+      const avgMinutesBetweenCommits = data.commitGaps.length > 0
+        ? Math.round((data.commitGaps.reduce((sum, gap) => sum + gap, 0) / data.commitGaps.length) * 100) / 100
+        : undefined;
+
+      const maxMinutesBetweenCommits = data.maxCommitGap > 0
+        ? Math.round(data.maxCommitGap * 100) / 100
+        : undefined;
+
+      return {
+        author,
+        totalHours: Math.round(data.totalHours * 100) / 100,
+        sessionsCount: data.sessionsCount,
+        totalCommits: data.totalCommits,
+        longestSessionHours: Math.round(data.longestSessionHours * 100) / 100,
+        avgMinutesBetweenCommits,
+        maxMinutesBetweenCommits,
+      };
+    })
     .sort((a, b) => b.totalHours - a.totalHours);
 }
 
@@ -96,6 +134,28 @@ export function calculateTotals(sessions: Session[]) {
   // Calculate minimum time between sessions
   const minTimeBetweenSessionsMin = calculateMinTimeBetweenSessions(sessions);
 
+  // Calculate commit gap metrics across all sessions
+  const allCommitGaps: number[] = [];
+  let maxCommitGap = 0;
+
+  for (const session of sessions) {
+    if (session.avgMinutesBetweenCommits !== undefined) {
+      const numGaps = session.commits.length - 1;
+      allCommitGaps.push(...Array(numGaps).fill(session.avgMinutesBetweenCommits));
+    }
+    if (session.maxMinutesBetweenCommits !== undefined) {
+      maxCommitGap = Math.max(maxCommitGap, session.maxMinutesBetweenCommits);
+    }
+  }
+
+  const avgMinutesBetweenCommits = allCommitGaps.length > 0
+    ? Math.round((allCommitGaps.reduce((sum, gap) => sum + gap, 0) / allCommitGaps.length) * 100) / 100
+    : undefined;
+
+  const maxMinutesBetweenCommits = maxCommitGap > 0
+    ? Math.round(maxCommitGap * 100) / 100
+    : undefined;
+
   return {
     totalHours: Math.round(totalHours * 100) / 100,
     sessionsCount,
@@ -108,6 +168,8 @@ export function calculateTotals(sessions: Session[]) {
     mostProductiveDayOfWeek,
     longestStreakDays,
     minTimeBetweenSessionsMin,
+    avgMinutesBetweenCommits,
+    maxMinutesBetweenCommits,
   };
 }
 

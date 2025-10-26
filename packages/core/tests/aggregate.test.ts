@@ -16,7 +16,9 @@ describe('aggregation logic', () => {
     author: string,
     commits: Commit[],
     durationMin: number,
-    date: string
+    date: string,
+    avgMinutesBetweenCommits?: number,
+    maxMinutesBetweenCommits?: number
   ): Session {
     return {
       author,
@@ -25,6 +27,8 @@ describe('aggregation logic', () => {
       endTime: commits[commits.length - 1].date,
       durationMinutes: durationMin,
       date,
+      avgMinutesBetweenCommits,
+      maxMinutesBetweenCommits,
     };
   }
 
@@ -42,7 +46,7 @@ describe('aggregation logic', () => {
       const result = aggregateByAuthor(sessions);
 
       expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
+      expect(result[0]).toMatchObject({
         author: 'alice',
         totalHours: 2.5,
         sessionsCount: 1,
@@ -73,7 +77,7 @@ describe('aggregation logic', () => {
       const result = aggregateByAuthor(sessions);
 
       expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
+      expect(result[0]).toMatchObject({
         author: 'alice',
         totalHours: 6.33, // 130 + 250 = 380 min = 6.33 hours
         sessionsCount: 2,
@@ -293,7 +297,7 @@ describe('aggregation logic', () => {
 
       const result = calculateTotals(sessions);
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         totalHours: 3,
         sessionsCount: 1,
         devDays: 1,
@@ -339,7 +343,7 @@ describe('aggregation logic', () => {
 
       const result = calculateTotals(sessions);
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         totalHours: 8.92, // 150 + 250 + 135 = 535 min = 8.92 hours
         sessionsCount: 3,
         devDays: 2, // Jan 15 and Jan 16
@@ -392,7 +396,7 @@ describe('aggregation logic', () => {
     it('should handle empty sessions array', () => {
       const result = calculateTotals([]);
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         totalHours: 0,
         sessionsCount: 0,
         devDays: 0,
@@ -557,6 +561,236 @@ describe('aggregation logic', () => {
 
       // Bob session 1 ends at 10:00, session 2 starts at 10:45 = 45 min gap
       expect(result.minTimeBetweenSessionsMin).toBe(45);
+    });
+  });
+
+  describe('commit gap metrics', () => {
+    describe('aggregateByAuthor', () => {
+      it('should not include gap metrics for single-commit sessions', () => {
+        const sessions: Session[] = [
+          createSession(
+            'alice',
+            [createCommit('alice', '2024-01-15T14:00:00Z', 'sha1')],
+            60,
+            '2024-01-15'
+            // No gap metrics for single commit
+          ),
+        ];
+
+        const result = aggregateByAuthor(sessions);
+
+        expect(result[0].avgMinutesBetweenCommits).toBeUndefined();
+        expect(result[0].maxMinutesBetweenCommits).toBeUndefined();
+      });
+
+      it('should aggregate gap metrics from single session', () => {
+        const sessions: Session[] = [
+          createSession(
+            'alice',
+            [
+              createCommit('alice', '2024-01-15T14:00:00Z', 'sha1'),
+              createCommit('alice', '2024-01-15T14:10:00Z', 'sha2'),
+              createCommit('alice', '2024-01-15T14:30:00Z', 'sha3'),
+            ],
+            60,
+            '2024-01-15',
+            15, // avg: (10 + 20) / 2 = 15
+            20  // max: 20
+          ),
+        ];
+
+        const result = aggregateByAuthor(sessions);
+
+        expect(result[0].avgMinutesBetweenCommits).toBe(15);
+        expect(result[0].maxMinutesBetweenCommits).toBe(20);
+      });
+
+      it('should aggregate gap metrics across multiple sessions', () => {
+        const sessions: Session[] = [
+          createSession(
+            'alice',
+            [
+              createCommit('alice', '2024-01-15T09:00:00Z', 'sha1'),
+              createCommit('alice', '2024-01-15T09:10:00Z', 'sha2'),
+            ],
+            30,
+            '2024-01-15',
+            10, // gap: 10
+            10  // max: 10
+          ),
+          createSession(
+            'alice',
+            [
+              createCommit('alice', '2024-01-15T14:00:00Z', 'sha3'),
+              createCommit('alice', '2024-01-15T14:20:00Z', 'sha4'),
+            ],
+            45,
+            '2024-01-15',
+            20, // gap: 20
+            20  // max: 20
+          ),
+        ];
+
+        const result = aggregateByAuthor(sessions);
+
+        // Average across both sessions: (10 + 20) / 2 = 15
+        expect(result[0].avgMinutesBetweenCommits).toBe(15);
+        // Max across both sessions: max(10, 20) = 20
+        expect(result[0].maxMinutesBetweenCommits).toBe(20);
+      });
+
+      it('should handle mix of single and multi-commit sessions', () => {
+        const sessions: Session[] = [
+          createSession(
+            'alice',
+            [createCommit('alice', '2024-01-15T09:00:00Z', 'sha1')],
+            60,
+            '2024-01-15'
+            // Single commit, no gaps
+          ),
+          createSession(
+            'alice',
+            [
+              createCommit('alice', '2024-01-15T14:00:00Z', 'sha2'),
+              createCommit('alice', '2024-01-15T14:25:00Z', 'sha3'),
+            ],
+            45,
+            '2024-01-15',
+            25, // gap: 25
+            25  // max: 25
+          ),
+        ];
+
+        const result = aggregateByAuthor(sessions);
+
+        // Only the second session has gaps
+        expect(result[0].avgMinutesBetweenCommits).toBe(25);
+        expect(result[0].maxMinutesBetweenCommits).toBe(25);
+      });
+
+      it('should aggregate gap metrics for multiple authors independently', () => {
+        const sessions: Session[] = [
+          createSession(
+            'alice',
+            [
+              createCommit('alice', '2024-01-15T09:00:00Z', 'sha1'),
+              createCommit('alice', '2024-01-15T09:10:00Z', 'sha2'),
+            ],
+            30,
+            '2024-01-15',
+            10,
+            10
+          ),
+          createSession(
+            'bob',
+            [
+              createCommit('bob', '2024-01-15T10:00:00Z', 'sha3'),
+              createCommit('bob', '2024-01-15T10:30:00Z', 'sha4'),
+            ],
+            45,
+            '2024-01-15',
+            30,
+            30
+          ),
+        ];
+
+        const result = aggregateByAuthor(sessions);
+
+        const alice = result.find(a => a.author === 'alice');
+        const bob = result.find(a => a.author === 'bob');
+
+        expect(alice?.avgMinutesBetweenCommits).toBe(10);
+        expect(alice?.maxMinutesBetweenCommits).toBe(10);
+        expect(bob?.avgMinutesBetweenCommits).toBe(30);
+        expect(bob?.maxMinutesBetweenCommits).toBe(30);
+      });
+    });
+
+    describe('calculateTotals', () => {
+      it('should not include gap metrics for all single-commit sessions', () => {
+        const sessions: Session[] = [
+          createSession(
+            'alice',
+            [createCommit('alice', '2024-01-15T09:00:00Z', 'sha1')],
+            60,
+            '2024-01-15'
+          ),
+          createSession(
+            'bob',
+            [createCommit('bob', '2024-01-15T10:00:00Z', 'sha2')],
+            45,
+            '2024-01-15'
+          ),
+        ];
+
+        const result = calculateTotals(sessions);
+
+        expect(result.avgMinutesBetweenCommits).toBeUndefined();
+        expect(result.maxMinutesBetweenCommits).toBeUndefined();
+      });
+
+      it('should aggregate gap metrics across all sessions', () => {
+        const sessions: Session[] = [
+          createSession(
+            'alice',
+            [
+              createCommit('alice', '2024-01-15T09:00:00Z', 'sha1'),
+              createCommit('alice', '2024-01-15T09:10:00Z', 'sha2'),
+            ],
+            30,
+            '2024-01-15',
+            10,
+            10
+          ),
+          createSession(
+            'bob',
+            [
+              createCommit('bob', '2024-01-15T10:00:00Z', 'sha3'),
+              createCommit('bob', '2024-01-15T10:20:00Z', 'sha4'),
+            ],
+            45,
+            '2024-01-15',
+            20,
+            20
+          ),
+        ];
+
+        const result = calculateTotals(sessions);
+
+        // Average: (10 + 20) / 2 = 15
+        expect(result.avgMinutesBetweenCommits).toBe(15);
+        // Max: max(10, 20) = 20
+        expect(result.maxMinutesBetweenCommits).toBe(20);
+      });
+
+      it('should handle mix of single and multi-commit sessions in totals', () => {
+        const sessions: Session[] = [
+          createSession(
+            'alice',
+            [createCommit('alice', '2024-01-15T09:00:00Z', 'sha1')],
+            60,
+            '2024-01-15'
+          ),
+          createSession(
+            'bob',
+            [
+              createCommit('bob', '2024-01-15T10:00:00Z', 'sha2'),
+              createCommit('bob', '2024-01-15T10:15:00Z', 'sha3'),
+              createCommit('bob', '2024-01-15T10:40:00Z', 'sha4'),
+            ],
+            45,
+            '2024-01-15',
+            20, // (15 + 25) / 2
+            25
+          ),
+        ];
+
+        const result = calculateTotals(sessions);
+
+        // Bob has 2 gaps: 15min and 25min, avg = 20, so total avg is 20
+        expect(result.avgMinutesBetweenCommits).toBe(20);
+        expect(result.maxMinutesBetweenCommits).toBe(25);
+      });
     });
   });
 });
