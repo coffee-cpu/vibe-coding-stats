@@ -307,3 +307,4 @@ const transformed = filtered.map(transform);
 - Always update README when you make changes to the core library API
 - Run all tests before publishing: `npm test -w packages/core`
 - Current version: 1.3.0 (includes commit gap metrics)
+- for publishing to npm follow @.github/NPM_PUBLISHING.md

@@ -3,6 +3,8 @@
 [![npm version](https://img.shields.io/npm/v/vibe-coding-stats.svg)](https://www.npmjs.com/package/vibe-coding-stats)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+**[Try the live demo](https://coffee-cpu.github.io/vibe-coding-stats/)**
+
 A TypeScript library for analyzing GitHub repositories to estimate developer activity in a more "human" way — including hours spent coding, coding sessions, and break patterns.
 
 **Optimized for vibe coding workflows** with session-based commit patterns. The default session timeout (45 minutes) and assumptions work best for repositories with frequent, smaller commits rather than infrequent large commits.
@@ -328,10 +330,6 @@ This library provides **approximate** coding activity metrics based on commit hi
 - **Doesn't capture non-coding time** - Code review, meetings, debugging, research, and thinking time are not measured
 - **Session detection is heuristic** - The timeout-based approach may occasionally split or merge sessions incorrectly
 - **Author identification** - Based on Git author info, which can be inconsistent across different machines or configurations
-
-## Demo
-
-Try the live demo at: [https://coffee-cpu.github.io/vibe-coding-stats/](https://coffee-cpu.github.io/vibe-coding-stats/)
 
 ## Development
 
