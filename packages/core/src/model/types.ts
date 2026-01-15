@@ -75,6 +75,8 @@ export interface RepoStats {
 
 export interface AuthorStats extends AggregateStats {
   author: string;
+  /** GitHub username if available. Profile URL: https://github.com/{authorLogin} */
+  authorLogin?: string;
 }
 
 export interface DayStats {
@@ -98,6 +100,7 @@ export interface Commit {
 
 export interface Session {
   author: string;
+  authorLogin?: string;
   commits: Commit[];
   startTime: Date;
   endTime: Date;

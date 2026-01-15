@@ -74,19 +74,24 @@ export function calculateAggregateStats(sessions: Session[]): AggregateStats {
  * Aggregate sessions into per-author statistics
  */
 export function aggregateByAuthor(sessions: Session[]): AuthorStats[] {
-  // Group sessions by author
-  const sessionsByAuthor = new Map<string, Session[]>();
+  // Group sessions by author, tracking authorLogin
+  const sessionsByAuthor = new Map<string, { sessions: Session[]; authorLogin?: string }>();
 
   for (const session of sessions) {
-    const existing = sessionsByAuthor.get(session.author) || [];
-    existing.push(session);
+    const existing = sessionsByAuthor.get(session.author) || { sessions: [], authorLogin: session.authorLogin };
+    existing.sessions.push(session);
+    // Use authorLogin from first session with one (they should all be the same for a given author)
+    if (!existing.authorLogin && session.authorLogin) {
+      existing.authorLogin = session.authorLogin;
+    }
     sessionsByAuthor.set(session.author, existing);
   }
 
   // Calculate stats for each author using the shared function
   return Array.from(sessionsByAuthor.entries())
-    .map(([author, authorSessions]) => ({
+    .map(([author, { sessions: authorSessions, authorLogin }]) => ({
       author,
+      authorLogin,
       ...calculateAggregateStats(authorSessions),
     }))
     .sort((a, b) => b.totalHours - a.totalHours);

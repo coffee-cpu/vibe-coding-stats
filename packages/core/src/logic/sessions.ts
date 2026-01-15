@@ -15,18 +15,22 @@ export interface SessionConfig {
 export function buildSessions(commits: Commit[], config: SessionConfig): Session[] {
   const { sessionTimeoutMin, firstCommitBonusMin, timezone } = config;
 
-  // Group commits by author
-  const commitsByAuthor = new Map<string, Commit[]>();
+  // Group commits by author, tracking authorLogin
+  const commitsByAuthor = new Map<string, { commits: Commit[]; authorLogin?: string }>();
   for (const commit of commits) {
-    const existing = commitsByAuthor.get(commit.author) || [];
-    existing.push(commit);
+    const existing = commitsByAuthor.get(commit.author) || { commits: [], authorLogin: commit.authorLogin };
+    existing.commits.push(commit);
+    // Use authorLogin from first commit with one (they should all be the same for a given author)
+    if (!existing.authorLogin && commit.authorLogin) {
+      existing.authorLogin = commit.authorLogin;
+    }
     commitsByAuthor.set(commit.author, existing);
   }
 
   const sessions: Session[] = [];
 
   // Process each author's commits
-  for (const [author, authorCommits] of commitsByAuthor) {
+  for (const [author, { commits: authorCommits, authorLogin }] of commitsByAuthor) {
     // Sort commits by date (oldest first)
     const sortedCommits = authorCommits.sort((a, b) => a.date.getTime() - b.date.getTime());
 
@@ -46,7 +50,7 @@ export function buildSessions(commits: Commit[], config: SessionConfig): Session
           currentSession.push(commit);
         } else {
           // End current session and start a new one
-          sessions.push(createSession(currentSession, author, firstCommitBonusMin, timezone));
+          sessions.push(createSession(currentSession, author, authorLogin, firstCommitBonusMin, timezone));
           currentSession = [commit];
         }
       }
@@ -54,7 +58,7 @@ export function buildSessions(commits: Commit[], config: SessionConfig): Session
 
     // Don't forget the last session
     if (currentSession.length > 0) {
-      sessions.push(createSession(currentSession, author, firstCommitBonusMin, timezone));
+      sessions.push(createSession(currentSession, author, authorLogin, firstCommitBonusMin, timezone));
     }
   }
 
@@ -67,6 +71,7 @@ export function buildSessions(commits: Commit[], config: SessionConfig): Session
 function createSession(
   commits: Commit[],
   author: string,
+  authorLogin: string | undefined,
   firstCommitBonusMin: number,
   timezone: string
 ): Session {
@@ -104,6 +109,7 @@ function createSession(
 
   return {
     author,
+    authorLogin,
     commits,
     startTime,
     endTime,

@@ -72,7 +72,7 @@ The `getRepoStats()` function returns a structured object:
   };
   perAuthor: Array<{         // ← Per-author breakdown
     author: string;
-    email: string;
+    authorLogin?: string;    // GitHub username (profile: https://github.com/{authorLogin})
     totalHours: number;
     sessionsCount: number;
     devDays: number;
@@ -131,9 +131,13 @@ const result = await getRepoStats(
 console.log(`Total hours (last 30 days): ${result.totals.totalHours}`);
 console.log(`Sessions: ${result.totals.sessionsCount}`);
 
-// View per-author breakdown
+// View per-author breakdown with GitHub profile links
 result.perAuthor.forEach(author => {
+  const profileUrl = author.authorLogin ? `https://github.com/${author.authorLogin}` : null;
   console.log(`${author.author}: ${author.totalHours}h, ${author.sessionsCount} sessions`);
+  if (profileUrl) {
+    console.log(`  GitHub: ${profileUrl}`);
+  }
   if (author.avgMinutesBetweenCommits) {
     console.log(`  Avg commit gap: ${author.avgMinutesBetweenCommits.toFixed(1)} minutes`);
   }

@@ -136,13 +136,38 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-coffee-600 to-coffee-700 flex items-center justify-center text-white font-bold text-lg shadow-warm">
-                    {author.author.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-coffee-900 truncate" title={author.author}>
-                      {author.author}
+                  {author.authorLogin ? (
+                    <a
+                      href={`https://github.com/${author.authorLogin}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-12 h-12 rounded-full bg-gradient-to-br from-coffee-600 to-coffee-700 flex items-center justify-center text-white font-bold text-lg shadow-warm hover:from-coffee-500 hover:to-coffee-600 transition-all"
+                      title={`View ${author.authorLogin} on GitHub`}
+                    >
+                      {author.author.charAt(0).toUpperCase()}
+                    </a>
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-coffee-600 to-coffee-700 flex items-center justify-center text-white font-bold text-lg shadow-warm">
+                      {author.author.charAt(0).toUpperCase()}
                     </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    {author.authorLogin ? (
+                      <a
+                        href={`https://github.com/${author.authorLogin}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-coffee-900 hover:text-coffee-600 truncate block transition-colors"
+                        title={`View ${author.authorLogin} on GitHub`}
+                      >
+                        {author.author}
+                        <span className="ml-1.5 text-coffee-400 text-xs">↗</span>
+                      </a>
+                    ) : (
+                      <div className="font-semibold text-coffee-900 truncate" title={author.author}>
+                        {author.author}
+                      </div>
+                    )}
                   </div>
                 </div>
 
