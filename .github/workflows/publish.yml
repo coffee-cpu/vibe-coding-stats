@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write  # Required for npm trusted publishing
+      id-token: write  # Required for npm trusted publishing (OIDC)
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -18,8 +18,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
+
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: npm ci
@@ -41,4 +45,4 @@ jobs:
         run: npm run build -w packages/core
 
       - name: Publish to npm
-        run: npm publish -w packages/core --provenance --access public
+        run: npm publish -w packages/core --access public
