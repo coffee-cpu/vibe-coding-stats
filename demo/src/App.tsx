@@ -1,67 +1,78 @@
-import { useState, useEffect } from 'react';
-import { getRepoStats, type RepoStats } from 'vibe-coding-stats';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { getRepoStats, StatsError, type RepoStats } from 'vibe-coding-stats';
 import RepoInput from './components/RepoInput';
 import StatsDisplay from './components/StatsDisplay';
+import { normalizeRepo, toRepoInput } from './repo';
+
+function describeError(err: unknown, hasToken: boolean): string {
+  if (err instanceof StatsError && err.code === 'RATE_LIMIT' && !hasToken) {
+    return `${err.message}. Unauthenticated requests are limited to 60 per hour — add a GitHub token under "Advanced" to raise the limit.`;
+  }
+  return err instanceof Error ? err.message : 'Failed to analyze repository';
+}
+
+function repoFromLocation(): string | null {
+  return new URLSearchParams(window.location.search).get('repo');
+}
 
 function App() {
   const [stats, setStats] = useState<RepoStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentRepo, setCurrentRepo] = useState<string>('');
+  // Kept in memory only; never written to the URL or browser storage
+  const tokenRef = useRef<string | undefined>(undefined);
+  // Ignore results of requests superseded by a newer one
+  const requestId = useRef(0);
 
-  // Get repo from URL parameter on mount
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const repoParam = params.get('repo');
-
-    if (repoParam) {
-      const analyzeFromUrl = async () => {
-        setCurrentRepo(repoParam);
-        setLoading(true);
-        setError(null);
-        setStats(null);
-
-        try {
-          const isUrl = repoParam.includes('github.com') || repoParam.startsWith('http');
-          const repoInput = isUrl ? { url: repoParam } : { repo: repoParam };
-          const stats = await getRepoStats(repoInput, {});
-          setStats(stats);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to analyze repository');
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      analyzeFromUrl();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleAnalyze = async (repoUrl: string) => {
+  const analyze = useCallback(async (repo: string, { updateUrl }: { updateUrl: boolean }) => {
+    const id = ++requestId.current;
+    const githubToken = tokenRef.current;
+    setCurrentRepo(repo);
     setLoading(true);
     setError(null);
     setStats(null);
 
     try {
-      // Detect if input is a URL or short format (owner/repo)
-      const isUrl = repoUrl.includes('github.com') || repoUrl.startsWith('http');
-      const repoInput = isUrl ? { url: repoUrl } : { repo: repoUrl };
+      const result = await getRepoStats(toRepoInput(repo), { githubToken });
+      if (id !== requestId.current) return;
+      setStats(result);
 
-      const stats = await getRepoStats(repoInput, {});
-      setStats(stats);
-      setCurrentRepo(repoUrl);
-
-      // Update URL without reloading the page
-      const params = new URLSearchParams(window.location.search);
-      params.set('repo', repoUrl);
-      const newUrl = `${window.location.pathname}?${params.toString()}`;
-      window.history.pushState({}, '', newUrl);
+      if (updateUrl) {
+        const params = new URLSearchParams(window.location.search);
+        params.set('repo', normalizeRepo(repo));
+        window.history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to analyze repository');
+      if (id !== requestId.current) return;
+      setError(describeError(err, Boolean(githubToken)));
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
+  }, []);
+
+  // Load the repo from the URL on mount and whenever the user navigates back/forward
+  useEffect(() => {
+    const loadFromLocation = () => {
+      const repo = repoFromLocation();
+      if (repo) {
+        void analyze(repo, { updateUrl: false });
+      } else {
+        requestId.current++;
+        setStats(null);
+        setError(null);
+        setLoading(false);
+      }
+    };
+
+    loadFromLocation();
+    window.addEventListener('popstate', loadFromLocation);
+    return () => window.removeEventListener('popstate', loadFromLocation);
+  }, [analyze]);
+
+  const handleAnalyze = (repo: string, githubToken?: string) => {
+    tokenRef.current = githubToken || undefined;
+    void analyze(repo, { updateUrl: true });
   };
 
   return (

@@ -1,25 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface RepoInputProps {
-  onAnalyze: (repoUrl: string) => void;
+  onAnalyze: (repoUrl: string, githubToken?: string) => void;
   loading: boolean;
   initialRepo?: string;
 }
 
 function RepoInput({ onAnalyze, loading, initialRepo }: RepoInputProps) {
   const [repoUrl, setRepoUrl] = useState(initialRepo || 'https://github.com/coffee-cpu/vibe-coding-stats');
+  const [githubToken, setGithubToken] = useState('');
 
-  // Update input when initialRepo changes
-  useEffect(() => {
-    if (initialRepo) {
-      setRepoUrl(initialRepo);
-    }
-  }, [initialRepo]);
+  // Follow initialRepo when it changes (e.g. back/forward navigation),
+  // adjusting state during render instead of in an effect
+  const [syncedRepo, setSyncedRepo] = useState(initialRepo);
+  if (initialRepo !== syncedRepo) {
+    setSyncedRepo(initialRepo);
+    if (initialRepo) setRepoUrl(initialRepo);
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (repoUrl.trim()) {
-      onAnalyze(repoUrl.trim());
+      onAnalyze(repoUrl.trim(), githubToken.trim() || undefined);
     }
   };
 
@@ -77,6 +79,33 @@ function RepoInput({ onAnalyze, loading, initialRepo }: RepoInputProps) {
               >
                 <span className="inline-block break-all underline decoration-coffee-400 decoration-2 group-hover:decoration-coffee-600">https://github.com/coffee-cpu/vibe-coding-stats</span>
               </button>
+            </div>
+          </details>
+
+          <details className="group mt-3">
+            <summary className="text-xs text-coffee-600 font-medium cursor-pointer hover:text-coffee-800 transition-colors list-none flex items-center gap-1.5">
+              <span className="transform transition-transform group-open:rotate-90">▶</span>
+              <span>Advanced</span>
+            </summary>
+            <div className="mt-3 ml-4 space-y-2 text-xs">
+              <label htmlFor="github-token" className="block font-semibold text-coffee-700">
+                GitHub token (optional)
+              </label>
+              <input
+                type="password"
+                id="github-token"
+                autoComplete="off"
+                className="w-full px-3 py-2 rounded-lg border-2 border-coffee-200 focus:border-coffee-500 focus:outline-none focus:ring-2 focus:ring-coffee-300 bg-white text-coffee-900 font-mono disabled:opacity-50"
+                placeholder="github_pat_…"
+                value={githubToken}
+                onChange={(e) => setGithubToken(e.target.value)}
+                disabled={loading}
+              />
+              <p className="text-coffee-600">
+                Raises the GitHub API limit from 60 to 5,000 requests per hour. The token is sent
+                only to api.github.com from your browser and is never stored. A fine-grained token
+                with no extra permissions is enough for public repositories.
+              </p>
             </div>
           </details>
         </div>
