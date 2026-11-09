@@ -47,3 +47,7 @@ lerna-debug.log*
 
 # Auto-generated files
 packages/core/README.md
+
+# Playwright
+demo/test-results/
+demo/playwright-report/
