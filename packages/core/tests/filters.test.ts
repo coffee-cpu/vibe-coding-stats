@@ -12,8 +12,13 @@ function ghCommit(overrides: {
   date?: string;
   parents?: number;
 }): GitHubCommit {
-  const { sha = 'sha', name = 'Alice', email = 'alice@example.com', login = 'alice', type = 'User' } =
-    overrides;
+  const {
+    sha = 'sha',
+    name = 'Alice',
+    email = 'alice@example.com',
+    login = 'alice',
+    type = 'User',
+  } = overrides;
   return {
     sha,
     commit: {
@@ -96,8 +101,12 @@ describe('shouldIncludeCommit', () => {
 describe('unifyAuthorIdentities', () => {
   it('attributes unlinked commits to the login with the same email', () => {
     const commits = [
-      transformGitHubCommit(ghCommit({ sha: 'a', name: 'Alice', email: 'a@x.com', login: 'alice' })),
-      transformGitHubCommit(ghCommit({ sha: 'b', name: 'Alice (laptop)', email: 'A@x.com', login: null })),
+      transformGitHubCommit(
+        ghCommit({ sha: 'a', name: 'Alice', email: 'a@x.com', login: 'alice' })
+      ),
+      transformGitHubCommit(
+        ghCommit({ sha: 'b', name: 'Alice (laptop)', email: 'A@x.com', login: null })
+      ),
     ];
     const unified = unifyAuthorIdentities(commits);
     expect(unified.map((c) => c.author)).toEqual(['alice', 'alice']);
@@ -106,8 +115,12 @@ describe('unifyAuthorIdentities', () => {
 
   it('attributes unlinked commits by name when the name maps to exactly one login', () => {
     const commits = [
-      transformGitHubCommit(ghCommit({ sha: 'a', name: 'Alice', email: 'a@work.com', login: 'alice' })),
-      transformGitHubCommit(ghCommit({ sha: 'b', name: 'alice', email: 'a@home.com', login: null })),
+      transformGitHubCommit(
+        ghCommit({ sha: 'a', name: 'Alice', email: 'a@work.com', login: 'alice' })
+      ),
+      transformGitHubCommit(
+        ghCommit({ sha: 'b', name: 'alice', email: 'a@home.com', login: null })
+      ),
     ];
     expect(unifyAuthorIdentities(commits)[1].author).toBe('alice');
   });

@@ -37,7 +37,11 @@ const BOT_WORD_PATTERN = new RegExp(
  * Uses, in order: GitHub's own account type, the `[bot]` login suffix used by
  * GitHub Apps, and whole-word matches against well-known automation names.
  */
-export function isLikelyBot(authorName: string, authorLogin?: string, authorType?: string): boolean {
+export function isLikelyBot(
+  authorName: string,
+  authorLogin?: string,
+  authorType?: string
+): boolean {
   if (authorType?.toLowerCase() === 'bot') return true;
 
   const login = authorLogin?.toLowerCase() ?? '';

@@ -30,7 +30,10 @@ interface ApiCall {
  */
 async function mockGitHub(
   page: Page,
-  handler: (repoPath: string, url: URL) => { status?: number; body: unknown; headers?: Record<string, string> }
+  handler: (
+    repoPath: string,
+    url: URL
+  ) => { status?: number; body: unknown; headers?: Record<string, string> }
 ): Promise<ApiCall[]> {
   const calls: ApiCall[] = [];
   await page.route('https://api.github.com/**', async (route: Route) => {
@@ -38,7 +41,12 @@ async function mockGitHub(
     calls.push({ url: url.toString(), authorization: route.request().headers()['authorization'] });
     const repoPath = url.pathname.replace(/^\/repos\//, '').replace(/\/commits$/, '');
     const { status = 200, body, headers } = handler(repoPath, url);
-    await route.fulfill({ status, contentType: 'application/json', headers, body: JSON.stringify(body) });
+    await route.fulfill({
+      status,
+      contentType: 'application/json',
+      headers,
+      body: JSON.stringify(body),
+    });
   });
   return calls;
 }
@@ -102,7 +110,10 @@ test('caps anonymous requests and shows a notice when history is truncated', asy
     const next = new URL(url);
     next.searchParams.set('page', String(n + 1));
     const body = Array.from({ length: 100 }, (_, i) =>
-      commitJson({ login: 'alice', date: new Date(Date.UTC(2024, 0, n, 0, i)).toISOString() }, n * 100 + i)
+      commitJson(
+        { login: 'alice', date: new Date(Date.UTC(2024, 0, n, 0, i)).toISOString() },
+        n * 100 + i
+      )
     );
     return { body, headers: { link: `<${next.toString()}>; rel="next"` } };
   });

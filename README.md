@@ -132,7 +132,7 @@ console.log(`Total hours (last 30 days): ${result.totals.totalHours}`);
 console.log(`Sessions: ${result.totals.sessionsCount}`);
 
 // View per-author breakdown with GitHub profile links
-result.perAuthor.forEach(author => {
+result.perAuthor.forEach((author) => {
   const profileUrl = author.authorLogin ? `https://github.com/${author.authorLogin}` : null;
   console.log(`${author.author}: ${author.totalHours}h, ${author.sessionsCount} sessions`);
   if (profileUrl) {
@@ -167,13 +167,19 @@ Main function to get repository statistics.
 **Parameters:**
 
 1. `repoInput` - Repository identifier (required):
+
 ```typescript
-{ repo: string }  // "owner/repo"
+{
+  repo: string;
+} // "owner/repo"
 // OR
-{ url: string }   // "https://github.com/owner/repo"
+{
+  url: string;
+} // "https://github.com/owner/repo"
 ```
 
 2. `options` - Configuration options (optional):
+
 ```typescript
 {
   // Session configuration
@@ -232,7 +238,7 @@ Promise<{
   };
   perAuthor: AuthorStats[];
   perDay: DayStats[];
-}>
+}>;
 ```
 
 **Input handling:**
@@ -245,15 +251,15 @@ Promise<{
 
 All failures are thrown as `StatsError` with a `code`:
 
-| Code | When |
-|---|---|
-| `INVALID_REPO` | Repo string or URL can't be parsed |
-| `INVALID_OPTIONS` | An option is out of range or malformed |
-| `NOT_FOUND` | Repository doesn't exist, or is private and no token with access was given |
-| `UNAUTHORIZED` | Bad token (401) or access forbidden (403) |
-| `RATE_LIMIT` | GitHub rate limit hit (403 with exhausted quota, secondary limits, or 429); the message includes the reset time when GitHub provides it |
-| `NETWORK` | The request failed after retries, or the response couldn't be parsed |
-| `UNKNOWN` | Any other GitHub error (e.g. persistent 5xx) |
+| Code              | When                                                                                                                                    |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `INVALID_REPO`    | Repo string or URL can't be parsed                                                                                                      |
+| `INVALID_OPTIONS` | An option is out of range or malformed                                                                                                  |
+| `NOT_FOUND`       | Repository doesn't exist, or is private and no token with access was given                                                              |
+| `UNAUTHORIZED`    | Bad token (401) or access forbidden (403)                                                                                               |
+| `RATE_LIMIT`      | GitHub rate limit hit (403 with exhausted quota, secondary limits, or 429); the message includes the reset time when GitHub provides it |
+| `NETWORK`         | The request failed after retries, or the response couldn't be parsed                                                                    |
+| `UNKNOWN`         | Any other GitHub error (e.g. persistent 5xx)                                                                                            |
 
 ```typescript
 import { getRepoStats, StatsError } from 'vibe-coding-stats';
@@ -320,10 +326,7 @@ The package includes full TypeScript type definitions:
 import { getRepoStats, type RepoStats } from 'vibe-coding-stats';
 
 async function fetchStats(): Promise<RepoStats> {
-  const result = await getRepoStats(
-    { repo: 'owner/repo' },
-    { sessionTimeoutMin: 45 }
-  );
+  const result = await getRepoStats({ repo: 'owner/repo' }, { sessionTimeoutMin: 45 });
 
   // TypeScript knows the structure of result.totals
   const hours: number = result.totals.totalHours;
@@ -335,12 +338,7 @@ async function fetchStats(): Promise<RepoStats> {
 You can also import individual types:
 
 ```typescript
-import type {
-  RepoStats,
-  AuthorStats,
-  DayStats,
-  StatsOptions
-} from 'vibe-coding-stats';
+import type { RepoStats, AuthorStats, DayStats, StatsOptions } from 'vibe-coding-stats';
 ```
 
 ## How It Works
@@ -350,11 +348,13 @@ import type {
 A **coding session** is defined as a series of commits by the same author where consecutive commits are no more than `sessionTimeoutMin` minutes apart (default: 45 minutes).
 
 Session duration is calculated as:
+
 ```
 duration = (lastCommitTime - firstCommitTime) + firstCommitBonusMin
 ```
 
 For single-commit sessions:
+
 ```
 duration = firstCommitBonusMin (default: 15 minutes)
 ```

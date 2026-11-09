@@ -31,6 +31,7 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
+      - run: npm run format:check
       - run: npm run type-check
       - run: npm run test:coverage -w packages/core
       - run: npm run build -w packages/core
@@ -67,4 +68,3 @@ jobs:
           name: playwright-report
           path: demo/playwright-report/
           retention-days: 7
-

@@ -7,7 +7,9 @@ interface RepoInputProps {
 }
 
 function RepoInput({ onAnalyze, loading, initialRepo }: RepoInputProps) {
-  const [repoUrl, setRepoUrl] = useState(initialRepo || 'https://github.com/coffee-cpu/vibe-coding-stats');
+  const [repoUrl, setRepoUrl] = useState(
+    initialRepo || 'https://github.com/coffee-cpu/vibe-coding-stats'
+  );
   const [githubToken, setGithubToken] = useState('');
 
   // Follow initialRepo when it changes (e.g. back/forward navigation),
@@ -69,7 +71,9 @@ function RepoInput({ onAnalyze, loading, initialRepo }: RepoInputProps) {
                 className="group block w-full text-left text-coffee-700 hover:text-coffee-900 transition-all font-mono cursor-pointer hover:bg-coffee-50 rounded px-2 py-1.5 -ml-2"
                 disabled={loading}
               >
-                <span className="inline-block underline decoration-coffee-400 decoration-2 group-hover:decoration-coffee-600">coffee-cpu/vibe-coding-stats</span>
+                <span className="inline-block underline decoration-coffee-400 decoration-2 group-hover:decoration-coffee-600">
+                  coffee-cpu/vibe-coding-stats
+                </span>
               </button>
               <button
                 type="button"
@@ -77,7 +81,9 @@ function RepoInput({ onAnalyze, loading, initialRepo }: RepoInputProps) {
                 className="group block w-full text-left text-coffee-700 hover:text-coffee-900 transition-all font-mono cursor-pointer hover:bg-coffee-50 rounded px-2 py-1.5 -ml-2"
                 disabled={loading}
               >
-                <span className="inline-block break-all underline decoration-coffee-400 decoration-2 group-hover:decoration-coffee-600">https://github.com/coffee-cpu/vibe-coding-stats</span>
+                <span className="inline-block break-all underline decoration-coffee-400 decoration-2 group-hover:decoration-coffee-600">
+                  https://github.com/coffee-cpu/vibe-coding-stats
+                </span>
               </button>
             </div>
           </details>

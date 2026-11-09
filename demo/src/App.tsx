@@ -99,7 +99,8 @@ function App() {
           </h1>
         </div>
         <p className="text-lg lg:text-xl text-coffee-700 font-normal max-w-2xl mx-auto">
-          Brew up insights from GitHub repositories • Discover developer activity with a warm, cozy touch
+          Brew up insights from GitHub repositories • Discover developer activity with a warm, cozy
+          touch
         </p>
         <div className="flex items-center justify-center gap-2 text-coffee-600">
           <span className="text-sm font-medium">Powered by coffee and code</span>
@@ -124,12 +125,8 @@ function App() {
         {loading && (
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-warm-xl p-12 text-center">
             <div className="inline-block animate-spin text-6xl mb-4">⏳</div>
-            <p className="text-xl text-coffee-700 font-medium">
-              Analyzing repository...
-            </p>
-            <p className="text-sm text-coffee-500 mt-2">
-              Processing commits and sessions
-            </p>
+            <p className="text-xl text-coffee-700 font-medium">Analyzing repository...</p>
+            <p className="text-sm text-coffee-500 mt-2">Processing commits and sessions</p>
           </div>
         )}
 
@@ -162,8 +159,8 @@ function App() {
             className="text-coffee-700 hover:text-coffee-900 font-semibold underline decoration-coffee-300 hover:decoration-coffee-500 transition-colors"
           >
             vibe-coding-stats
-          </a>
-          {' '}• Made with ❤️
+          </a>{' '}
+          • Made with ❤️
         </p>
       </footer>
     </div>

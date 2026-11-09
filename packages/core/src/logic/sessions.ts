@@ -26,14 +26,18 @@ export function buildSessions(commits: Commit[], config: SessionConfig): Session
     for (const commit of sortedCommits) {
       const lastCommit = currentSession[currentSession.length - 1];
       if (lastCommit && diffInMinutes(commit.date, lastCommit.date) > sessionTimeoutMin) {
-        sessions.push(createSession(currentSession, author, authorLogin, firstCommitBonusMin, timezone));
+        sessions.push(
+          createSession(currentSession, author, authorLogin, firstCommitBonusMin, timezone)
+        );
         currentSession = [];
       }
       currentSession.push(commit);
     }
 
     if (currentSession.length > 0) {
-      sessions.push(createSession(currentSession, author, authorLogin, firstCommitBonusMin, timezone));
+      sessions.push(
+        createSession(currentSession, author, authorLogin, firstCommitBonusMin, timezone)
+      );
     }
   }
 

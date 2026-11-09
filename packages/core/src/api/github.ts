@@ -129,12 +129,16 @@ export async function fetchGitHubCommitPages(
   let page = 1;
 
   while (nextUrl) {
-    const response = await fetchWithRetry(nextUrl, { headers }, {
-      fetchImpl,
-      maxRetries,
-      retryBaseDelayMs,
-      hasToken: Boolean(githubToken),
-    });
+    const response = await fetchWithRetry(
+      nextUrl,
+      { headers },
+      {
+        fetchImpl,
+        maxRetries,
+        retryBaseDelayMs,
+        hasToken: Boolean(githubToken),
+      }
+    );
 
     if (response.status === 409) {
       // "Git Repository is empty."
@@ -153,7 +157,8 @@ export async function fetchGitHubCommitPages(
 
     commits.push(...(data as GitHubCommit[]));
 
-    const followingUrl: string | undefined = data.length === 0 ? undefined : nextPageUrl(response, nextUrl, page, data.length, perPage);
+    const followingUrl: string | undefined =
+      data.length === 0 ? undefined : nextPageUrl(response, nextUrl, page, data.length, perPage);
     if (followingUrl && maxPages && page >= maxPages) {
       return { commits, truncated: true };
     }
@@ -256,7 +261,11 @@ function retryWaitMs(
       return retryAfter * 1000;
     }
     const resetAt = Number(getHeader(response, 'x-ratelimit-reset'));
-    if (getHeader(response, 'x-ratelimit-remaining') === '0' && Number.isFinite(resetAt) && resetAt > 0) {
+    if (
+      getHeader(response, 'x-ratelimit-remaining') === '0' &&
+      Number.isFinite(resetAt) &&
+      resetAt > 0
+    ) {
       return Math.max(0, resetAt * 1000 - Date.now());
     }
     // No hint about when the limit lifts: fail fast rather than guess
@@ -314,12 +323,17 @@ async function toStatsError(response: Response, hasToken: boolean): Promise<Stat
   } else if (isRateLimited) {
     errorCode = 'RATE_LIMIT';
     const resetAt = reset ? new Date(Number(reset) * 1000) : undefined;
-    message = resetAt && !Number.isNaN(resetAt.getTime())
-      ? `GitHub API rate limit exceeded (resets at ${resetAt.toISOString()})`
-      : 'GitHub API rate limit exceeded';
+    message =
+      resetAt && !Number.isNaN(resetAt.getTime())
+        ? `GitHub API rate limit exceeded (resets at ${resetAt.toISOString()})`
+        : 'GitHub API rate limit exceeded';
   } else if (status === 403) {
     errorCode = 'UNAUTHORIZED';
   }
 
-  return new StatsError(errorCode, message, { status, response, rateLimitReset: reset ?? undefined });
+  return new StatsError(errorCode, message, {
+    status,
+    response,
+    rateLimitReset: reset ?? undefined,
+  });
 }

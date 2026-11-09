@@ -243,7 +243,9 @@ describe('Cache', () => {
     });
 
     it('normalizes equivalent inputs to the same key', () => {
-      expect(key({ since: new Date('2024-01-01T00:00:00Z') })).toBe(key({ since: '2024-01-01T00:00:00Z' }));
+      expect(key({ since: new Date('2024-01-01T00:00:00Z') })).toBe(
+        key({ since: '2024-01-01T00:00:00Z' })
+      );
       expect(key({ authors: ['Bob', 'alice'] })).toBe(key({ authors: ['alice', 'bob'] }));
       expect(key({ perPage: 500 })).toBe(key({ perPage: 100 }));
       expect(generateCacheKey('Owner', 'Repo', {})).toBe(key({}));
@@ -267,7 +269,9 @@ describe('Cache', () => {
         longestStreakDays: 1,
       },
       perAuthor: [],
-      perDay: [{ date: '2024-01-01', totalHours: 1, sessionsCount: 1, totalCommits: 1, authors: ['a'] }],
+      perDay: [
+        { date: '2024-01-01', totalHours: 1, sessionsCount: 1, totalCommits: 1, authors: ['a'] },
+      ],
     });
 
     afterEach(() => {
