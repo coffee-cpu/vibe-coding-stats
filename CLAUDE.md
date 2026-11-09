@@ -27,12 +27,13 @@ For single-commit sessions: `duration = firstCommitBonusMin` (default: 15 minute
 
 1. **Parse input** - Accept `repo: "owner/repo"` or `url: "https://github.com/..."`
 2. **Fetch commits** - Use GitHub REST API (`/repos/:owner/:repo/commits`) with pagination
-3. **Filter** - Remove bots (if `excludeBots: true`), apply author filters, time ranges
-4. **Normalize** - Convert all timestamps to specified timezone
-5. **Group** - Organize commits by author, sort chronologically
-6. **Build sessions** - Apply timeout-based session detection
-7. **Aggregate** - Calculate per-author, per-day, and total metrics
-8. **Return** - Structured `RepoStats` object
+3. **Transform** - Convert to internal `Commit` objects (with `isBot`/`isMerge` flags)
+4. **Unify identities** - Attribute commits without a GitHub login to the login with the same email/unique name
+5. **Filter** - Remove bots (if `excludeBots: true`), merge commits, apply author filters and the author-date range
+6. **Group** - Organize commits by author, sort chronologically
+7. **Build sessions** - Apply timeout-based session detection (session date = start day in configured timezone)
+8. **Aggregate** - Calculate per-author, per-day, and total metrics
+9. **Return** - Structured `RepoStats` object
 
 ### Key Types
 
@@ -49,14 +50,16 @@ packages/core/
   src/
     api/github.ts          # GitHub API client (pure HTTP, returns raw GitHub data)
     logic/
-      filters.ts           # Filtering logic (bots, merge commits, authors)
-      transform.ts         # Transform GitHub API format to internal types
+      options.ts           # Option validation and defaults (INVALID_OPTIONS)
+      filters.ts           # Filtering logic (bots, merge commits, authors, date range)
+      transform.ts         # GitHub API format → internal Commit; author identity unification
       sessions.ts          # Session grouping and duration calculation
       aggregate.ts         # Aggregation by author/day, metrics computation
     model/types.ts         # TypeScript interfaces and types
     util/
-      time.ts              # Timezone handling using date-fns
-      cache.ts             # In-memory caching implementation
+      time.ts              # Timezone handling using date-fns-tz
+      cache.ts             # In-memory LRU cache (returns copies)
+      collections.ts       # groupBy / rounding helpers
     index.ts               # Public API and orchestration layer
   tests/                   # Vitest unit and integration tests
 ```
@@ -68,21 +71,25 @@ packages/core/
 1. **API Layer** (`api/github.ts`)
    - Pure HTTP client - only communicates with GitHub REST API
    - Returns raw `GitHubCommit[]` data without any transformation
-   - Handles pagination, authentication, and error mapping
+   - Handles pagination (Link header), authentication, retries, and error mapping
+   - Treats 409 (empty repository) as zero commits
    - Does NOT filter, transform, or orchestrate business logic
 
 2. **Transformation Layer** (`logic/transform.ts`)
    - Converts GitHub API format to internal `Commit` type
-   - Enriches data with metadata (isBot, isMerge flags)
+   - Enriches data with metadata (isBot, isMerge flags, author name/email/type)
+   - `unifyAuthorIdentities()` merges unlinked commits into the matching login
    - Pure functions, easy to test in isolation
 
 3. **Filtering Layer** (`logic/filters.ts`)
-   - Centralized filtering logic for bots, merge commits, and author filtering
+   - Centralized filtering logic for bots, merge commits, author and date-range filtering
    - Exports reusable predicates: `isLikelyBot()`, `isMergeCommit()`, `shouldIncludeCommit()`
+   - `shouldIncludeCommit()` operates on transformed `Commit` objects (flags are computed once)
    - All filtering decisions in one place for easy maintenance
 
 4. **Orchestration Layer** (`index.ts`)
-   - Coordinates the data flow: **fetch → filter → transform → sessions → aggregation**
+   - Validates options first (`resolveOptions`), before cache or network
+   - Coordinates the data flow: **fetch → transform → unify → filter → sessions → aggregation**
    - Only place where the full pipeline is assembled
    - Handles caching at the appropriate level
 
@@ -91,10 +98,10 @@ packages/core/
 GitHub API (raw)
   ↓ fetch (api/github.ts)
 GitHubCommit[]
-  ↓ filter (logic/filters.ts)
-GitHubCommit[] (filtered)
-  ↓ transform (logic/transform.ts)
+  ↓ transform + unify identities (logic/transform.ts)
 Commit[]
+  ↓ filter (logic/filters.ts)
+Commit[] (filtered)
   ↓ session building (logic/sessions.ts)
 Session[]
   ↓ aggregation (logic/aggregate.ts)
@@ -121,16 +128,18 @@ The `excludeMergeCommits` option allows filtering merge commits, which often hav
 
 ### Bot Detection
 
-When `excludeBots: true` (default), filter out common bot patterns like:
-- dependabot
-- renovate
-- github-actions
-- And other common automation tools
+When `excludeBots: true` (default), filter out:
+- Accounts GitHub reports as `type: "Bot"`
+- Logins/names ending in `[bot]` (GitHub Apps)
+- Whole-word matches of known automation names (dependabot, renovate, github-actions, …)
+
+Never use plain substring matching: it drops humans such as "Talbot" or "Abbott".
 
 ### Caching Strategy
 
-- Default: `cache: 'memory'` with `cacheTTLms: 900000` (15 minutes)
-- Cache key should include repo, date range, and filter options
+- Default: `cache: 'memory'` with `cacheTTLms: 900000` (15 minutes), at most 100 entries (LRU)
+- Cache key must include every option that changes the result: repo, date range, filters, session settings, timezone, `perPage`, `maxPages` and a fingerprint of `githubToken` (never the raw token)
+- Cached results are deep-copied on write and read
 - Useful for demo app to avoid re-fetching during option tweaks
 
 ### Error Handling
@@ -141,7 +150,9 @@ Use the `StatsError` class with structured error codes:
 - `RATE_LIMIT` - GitHub API rate limit exceeded
 - `NETWORK` - Network/fetch errors
 - `UNAUTHORIZED` - Invalid/missing GitHub token (401/403)
-- `UNSUPPORTED_PRIVATE_REPO` - Private repos not supported
+- `RATE_LIMIT` also covers 429 and 403 with `x-ratelimit-remaining: 0` or a secondary rate limit message
+- `INVALID_OPTIONS` - Out-of-range or malformed options
+- `UNSUPPORTED_PRIVATE_REPO` - Deprecated, never thrown (GitHub returns 404 for inaccessible private repos)
 - `UNKNOWN` - Unexpected errors
 
 ## Development Commands
@@ -162,18 +173,21 @@ npm test -w packages/core -- sessions.test.ts
 # Watch mode for tests
 npm test -w packages/core -- --watch
 
-# Lint
+# Lint (ESLint flat config: eslint.config.mjs)
 npm run lint
 
-# Type check
+# Type check (core src + tests via tsconfig.test.json, and the demo)
 npm run type-check
 
 # Run demo locally
 npm run dev -w demo
 
-# Build demo for deployment
+# Build demo for deployment (resolves the library from packages/core/src; no core build needed)
 npm run build -w demo
 ```
+
+Development requires Node.js 22.12+ (vitest 5, vite 8, tsup 9). The published library supports Node.js 18+.
+CI (`.github/workflows/ci.yml`) runs lint, type-check, tests and both builds on Node 22 and 24.
 
 ## Testing Requirements
 
@@ -213,14 +227,14 @@ npm run build -w demo
 ### Aggregate Metrics
 - **totalHours**: Sum of all session durations
 - **sessionsCount**: Number of distinct coding sessions
-- **devDays**: Number of calendar days with at least one commit
+- **devDays**: Number of distinct days (configured timezone) on which a session started — consistent with `perDay`
 - **totalCommits**: Total commit count after filtering
 - **avgCommitsPerSession**: totalCommits / sessionsCount
 - **avgSessionsPerDay**: sessionsCount / devDays
 - **longestSessionHours**: Duration of the longest single coding session
 - **avgSessionHours**: Average duration of coding sessions
-- **mostProductiveDayOfWeek**: Day of week with most total coding hours
-- **longestStreakDays**: Longest consecutive days with commits
+- **mostProductiveDayOfWeek**: Day of week with most total coding hours (from session dates, so it follows the configured timezone)
+- **longestStreakDays**: Longest run of consecutive dev days
 - **minTimeBetweenSessionsMin**: Minimum break time between sessions by the same author
 - **avgMinutesBetweenCommits**: Average commit gap across all sessions
 - **maxMinutesBetweenCommits**: Maximum commit gap across all sessions
@@ -254,7 +268,10 @@ These are inherent to the approach and should be documented but not "fixed":
 - Test each layer independently with mocked dependencies
 - Integration tests should cover the full pipeline (see `integration.test.ts`)
 - When refactoring, ensure all existing tests still pass
-- Current test count: 112 tests across 6 test files
+- Current test count: 208 tests across 8 test files
+- Type-check tests too (`npm run type-check -w packages/core` includes `tsconfig.test.json`)
+- Inject `fetchImpl` in tests; pass `maxRetries: 0` or `retryBaseDelayMs: 0` to keep error tests fast
+- Always call `fetchImpl` as a plain function — browsers throw "Illegal invocation" if `fetch` is called as a method of another object
 
 ### Build Configuration
 
@@ -306,5 +323,5 @@ const transformed = filtered.map(transform);
 - Always use https://github.com/coffee-cpu/vibe-coding-stats.git as a testing repo
 - Always update README when you make changes to the core library API
 - Run all tests before publishing: `npm test -w packages/core`
-- Current version: 1.3.0 (includes commit gap metrics)
+- Current version: 1.4.1
 - for publishing to npm follow @.github/NPM_PUBLISHING.md
