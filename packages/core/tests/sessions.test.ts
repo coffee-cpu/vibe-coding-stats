@@ -307,4 +307,35 @@ describe('session grouping', () => {
       expect(sessions[0].maxMinutesBetweenCommits).toBe(40);
     });
   });
+
+  describe('daylight saving time', () => {
+    const ny = { sessionTimeoutMin: 45, firstCommitBonusMin: 15, timezone: 'America/New_York' };
+
+    it('measures real elapsed time across the spring-forward gap', () => {
+      // 01:50 EST and 03:10 EDT are only 20 real minutes apart
+      const sessions = buildSessions(
+        [createCommit('alice', '2024-03-10T06:50:00Z', 'a'), createCommit('alice', '2024-03-10T07:10:00Z', 'b')],
+        ny
+      );
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].durationMinutes).toBe(35);
+      expect(sessions[0].date).toBe('2024-03-10');
+    });
+
+    it('measures real elapsed time across the repeated fall-back hour', () => {
+      // 01:40 EDT then 01:10 EST: wall clock goes backwards, 30 real minutes pass
+      const sessions = buildSessions(
+        [createCommit('alice', '2024-11-03T05:40:00Z', 'a'), createCommit('alice', '2024-11-03T06:10:00Z', 'b')],
+        ny
+      );
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].durationMinutes).toBe(45);
+    });
+
+    it('does not reorder or mutate the caller’s commit array', () => {
+      const commits = [createCommit('alice', '2024-01-15T15:00:00Z', 'late'), createCommit('alice', '2024-01-15T14:30:00Z', 'early')];
+      buildSessions(commits, ny);
+      expect(commits.map((c) => c.sha)).toEqual(['late', 'early']);
+    });
+  });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { aggregateByAuthor, aggregateByDay, calculateTotals } from '../src/logic/aggregate.js';
+import { aggregateByAuthor, aggregateByDay, calculateAggregateStats } from '../src/logic/aggregate.js';
 import type { Session, Commit } from '../src/model/types.js';
 
 describe('aggregation logic', () => {
@@ -284,7 +284,7 @@ describe('aggregation logic', () => {
     });
   });
 
-  describe('calculateTotals', () => {
+  describe('calculateAggregateStats', () => {
     it('should calculate totals from single session', () => {
       const sessions: Session[] = [
         createSession(
@@ -295,7 +295,7 @@ describe('aggregation logic', () => {
         ),
       ];
 
-      const result = calculateTotals(sessions);
+      const result = calculateAggregateStats(sessions);
 
       expect(result).toMatchObject({
         totalHours: 3,
@@ -341,7 +341,7 @@ describe('aggregation logic', () => {
         ),
       ];
 
-      const result = calculateTotals(sessions);
+      const result = calculateAggregateStats(sessions);
 
       expect(result).toMatchObject({
         totalHours: 8.92, // 150 + 250 + 135 = 535 min = 8.92 hours
@@ -383,7 +383,7 @@ describe('aggregation logic', () => {
         ),
       ];
 
-      const result = calculateTotals(sessions);
+      const result = calculateAggregateStats(sessions);
 
       // 99 min = 1.65 hours
       expect(result.totalHours).toBe(1.65);
@@ -394,7 +394,7 @@ describe('aggregation logic', () => {
     });
 
     it('should handle empty sessions array', () => {
-      const result = calculateTotals([]);
+      const result = calculateAggregateStats([]);
 
       expect(result).toMatchObject({
         totalHours: 0,
@@ -433,7 +433,7 @@ describe('aggregation logic', () => {
         ),
       ];
 
-      const result = calculateTotals(sessions);
+      const result = calculateAggregateStats(sessions);
 
       expect(result.devDays).toBe(1); // All on same day
     });
@@ -468,7 +468,7 @@ describe('aggregation logic', () => {
         ),
       ];
 
-      const result = calculateTotals(sessions);
+      const result = calculateAggregateStats(sessions);
 
       // Session 1: 09:00 - 09:30, Session 2: 11:00 - 11:00, Session 3: 13:00 - 13:00
       // Gap 1: 09:30 to 11:00 = 90 min
@@ -486,7 +486,7 @@ describe('aggregation logic', () => {
         ),
       ];
 
-      const result = calculateTotals(sessions);
+      const result = calculateAggregateStats(sessions);
 
       expect(result.minTimeBetweenSessionsMin).toBeUndefined();
     });
@@ -517,7 +517,7 @@ describe('aggregation logic', () => {
         ),
       ];
 
-      const result = calculateTotals(sessions);
+      const result = calculateAggregateStats(sessions);
 
       expect(result.minTimeBetweenSessionsMin).toBeUndefined(); // No author has 2+ sessions
     });
@@ -557,7 +557,7 @@ describe('aggregation logic', () => {
         ),
       ];
 
-      const result = calculateTotals(sessions);
+      const result = calculateAggregateStats(sessions);
 
       // Bob session 1 ends at 10:00, session 2 starts at 10:45 = 45 min gap
       expect(result.minTimeBetweenSessionsMin).toBe(45);
@@ -706,7 +706,7 @@ describe('aggregation logic', () => {
       });
     });
 
-    describe('calculateTotals', () => {
+    describe('calculateAggregateStats', () => {
       it('should not include gap metrics for all single-commit sessions', () => {
         const sessions: Session[] = [
           createSession(
@@ -723,7 +723,7 @@ describe('aggregation logic', () => {
           ),
         ];
 
-        const result = calculateTotals(sessions);
+        const result = calculateAggregateStats(sessions);
 
         expect(result.avgMinutesBetweenCommits).toBeUndefined();
         expect(result.maxMinutesBetweenCommits).toBeUndefined();
@@ -755,7 +755,7 @@ describe('aggregation logic', () => {
           ),
         ];
 
-        const result = calculateTotals(sessions);
+        const result = calculateAggregateStats(sessions);
 
         // Average: (10 + 20) / 2 = 15
         expect(result.avgMinutesBetweenCommits).toBe(15);
@@ -785,12 +785,65 @@ describe('aggregation logic', () => {
           ),
         ];
 
-        const result = calculateTotals(sessions);
+        const result = calculateAggregateStats(sessions);
 
         // Bob has 2 gaps: 15min and 25min, avg = 20, so total avg is 20
         expect(result.avgMinutesBetweenCommits).toBe(20);
         expect(result.maxMinutesBetweenCommits).toBe(25);
       });
+    });
+  });
+
+  describe('regressions', () => {
+    it('uses the session date (configured timezone) for the most productive weekday', () => {
+      // 2024-01-08T02:00Z is Monday in UTC but Sunday 2024-01-07 in New York;
+      // buildSessions stores the New York date on the session.
+      const commit = createCommit('alice', '2024-01-08T02:00:00Z', 'sha1');
+      const result = calculateAggregateStats([createSession('alice', [commit], 60, '2024-01-07')]);
+      expect(result.mostProductiveDayOfWeek).toBe('Sunday');
+    });
+
+    it('reports a max commit gap of 0 (not undefined) when commits share a timestamp', () => {
+      const commits = [
+        createCommit('alice', '2024-01-15T14:00:00Z', 'sha1'),
+        createCommit('alice', '2024-01-15T14:00:00Z', 'sha2'),
+      ];
+      const result = calculateAggregateStats([createSession('alice', commits, 15, '2024-01-15', 0, 0)]);
+      expect(result.avgMinutesBetweenCommits).toBe(0);
+      expect(result.maxMinutesBetweenCommits).toBe(0);
+    });
+
+    it('computes the average commit gap exactly from raw gaps', () => {
+      // Session A: gaps of 1 and 2 min → per-session avg 1.5; session B: one gap of 1/3 min
+      const a = [
+        createCommit('alice', '2024-01-15T14:00:00Z', 'a1'),
+        createCommit('alice', '2024-01-15T14:01:00Z', 'a2'),
+        createCommit('alice', '2024-01-15T14:03:00Z', 'a3'),
+      ];
+      const b = [
+        createCommit('alice', '2024-01-16T14:00:00Z', 'b1'),
+        createCommit('alice', '2024-01-16T14:00:20Z', 'b2'),
+      ];
+      const result = calculateAggregateStats([
+        createSession('alice', a, 18, '2024-01-15', 1.5, 2),
+        createSession('alice', b, 15.33, '2024-01-16', 0.33, 0.33),
+      ]);
+      // (3 + 1/3) / 3 = 1.111… → 1.11
+      expect(result.avgMinutesBetweenCommits).toBe(1.11);
+    });
+
+    it('handles very large session lists without overflowing the call stack', () => {
+      const commit = createCommit('alice', '2024-01-15T14:00:00Z', 'sha');
+      const sessions = Array.from({ length: 250_000 }, () => createSession('alice', [commit], 15, '2024-01-15'));
+      expect(() => calculateAggregateStats(sessions)).not.toThrow();
+    });
+
+    it('rounds per-day hours like the other metrics', () => {
+      const commit = createCommit('alice', '2024-01-15T14:00:00Z', 'sha');
+      const sessions = [1, 2, 3].map(() => createSession('alice', [commit], 7, '2024-01-15'));
+      expect(aggregateByDay(sessions)[0].totalHours).toBe(0.35);
+      const tenths = Array.from({ length: 3 }, () => createSession('alice', [commit], 6, '2024-01-15'));
+      expect(aggregateByDay(tenths)[0].totalHours).toBe(0.3); // 0.1 + 0.1 + 0.1 = 0.30000000000000004 unrounded
     });
   });
 });

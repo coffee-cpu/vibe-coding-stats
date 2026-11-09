@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { parseRepoInput, fetchGitHubCommits } from '../src/api/github.js';
+import { parseRepoInput, fetchGitHubCommits, parseNextLink } from '../src/api/github.js';
 import { StatsError } from '../src/model/types.js';
 import type { GitHubCommit } from '../src/model/types.js';
 
@@ -267,12 +267,12 @@ describe('GitHub API utilities', () => {
     it('should throw NETWORK error for fetch failures', async () => {
       const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-      await expect(fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch })).rejects.toThrow(
-        StatsError
-      );
+      await expect(
+        fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch, maxRetries: 0 })
+      ).rejects.toThrow(StatsError);
 
       try {
-        await fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch });
+        await fetchGitHubCommits('owner', 'repo', { fetchImpl: mockFetch, maxRetries: 0 });
       } catch (error) {
         expect((error as StatsError).code).toBe('NETWORK');
       }
@@ -288,5 +288,178 @@ describe('GitHub API utilities', () => {
 
       expect(commits).toHaveLength(0);
     });
+  });
+});
+
+describe('parseRepoInput edge cases', () => {
+  it.each([
+    ['https://github.com/owner/repo?tab=readme', 'owner', 'repo'],
+    ['https://github.com/owner/repo#readme', 'owner', 'repo'],
+    ['https://github.com/owner/repo/tree/main/src', 'owner', 'repo'],
+    ['https://github.com/owner/repo.git', 'owner', 'repo'],
+    ['https://www.github.com/owner/repo/', 'owner', 'repo'],
+    ['  https://github.com/owner/repo  ', 'owner', 'repo'],
+    ['git@github.com:owner/my.repo.git', 'owner', 'my.repo'],
+  ])('parses URL %s', (url, owner, repo) => {
+    expect(parseRepoInput({ url })).toEqual({ owner, repo });
+  });
+
+  it.each([
+    ['owner/repo.git', 'owner', 'repo'],
+    [' owner/repo/ ', 'owner', 'repo'],
+  ])('parses repo %j', (input, owner, repo) => {
+    expect(parseRepoInput({ repo: input })).toEqual({ owner, repo });
+  });
+
+  it.each(['../repo', 'owner/..', 'owner/re po', 'owner/repo?x=1', 'a/b/c'])(
+    'rejects %j',
+    (input) => {
+      expect(() => parseRepoInput({ repo: input })).toThrow(StatsError);
+    }
+  );
+});
+
+describe('fetchGitHubCommits HTTP behaviour', () => {
+  const commit = (sha: string): GitHubCommit => ({
+    sha,
+    commit: { author: { name: 'A', email: 'a@x', date: '2024-01-15T14:00:00Z' }, message: 'm' },
+    author: { login: 'a', type: 'User' },
+    parents: [{ sha: 'p' }],
+  });
+  const page = (n: number, offset = 0) => Array.from({ length: n }, (_, i) => commit(`s${offset + i}`));
+  const json = (body: unknown, init: ResponseInit = {}) =>
+    new Response(JSON.stringify(body), { status: 200, ...init });
+
+  async function codeOf(promise: Promise<unknown>): Promise<string | undefined> {
+    try {
+      await promise;
+      return undefined;
+    } catch (error) {
+      return (error as StatsError).code;
+    }
+  }
+
+  it('clamps perPage to GitHub’s maximum of 100 so pagination continues', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(json(page(100)))
+      .mockResolvedValueOnce(json(page(100, 100)))
+      .mockResolvedValueOnce(json([]));
+
+    const commits = await fetchGitHubCommits('o', 'r', { fetchImpl: mockFetch, perPage: 500 });
+
+    expect(commits).toHaveLength(200);
+    expect(mockFetch.mock.calls[0][0]).toContain('per_page=100');
+  });
+
+  it('follows the Link header and stops when there is no next link', async () => {
+    const next = 'https://api.github.com/repositories/1/commits?per_page=100&page=2';
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(json(page(100), { headers: { link: `<${next}>; rel="next", <x>; rel="last"` } }))
+      .mockResolvedValueOnce(json(page(100, 100), { headers: { link: '<y>; rel="prev"' } }));
+
+    const commits = await fetchGitHubCommits('o', 'r', { fetchImpl: mockFetch });
+
+    expect(commits).toHaveLength(200);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockFetch.mock.calls[1][0]).toBe(next);
+  });
+
+  it('returns no commits for an empty repository (409)', async () => {
+    const mockFetch = vi.fn().mockResolvedValue(json({ message: 'Git Repository is empty.' }, { status: 409 }));
+    await expect(fetchGitHubCommits('o', 'r', { fetchImpl: mockFetch })).resolves.toEqual([]);
+  });
+
+  it('maps 429 and 403 with exhausted quota to RATE_LIMIT', async () => {
+    const r429 = vi.fn().mockResolvedValue(json({ message: 'Too many requests' }, { status: 429 }));
+    expect(await codeOf(fetchGitHubCommits('o', 'r', { fetchImpl: r429, maxRetries: 0 }))).toBe('RATE_LIMIT');
+
+    const reset = String(Math.floor(Date.now() / 1000) + 3600);
+    const r403 = vi.fn().mockResolvedValue(
+      json({ message: 'Forbidden' }, {
+        status: 403,
+        headers: { 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': reset },
+      })
+    );
+    expect(await codeOf(fetchGitHubCommits('o', 'r', { fetchImpl: r403 }))).toBe('RATE_LIMIT');
+    // The reset is an hour away: fail fast instead of retrying
+    expect(r403).toHaveBeenCalledTimes(1);
+  });
+
+  it('maps a secondary rate limit message to RATE_LIMIT', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(json({ message: 'You have exceeded a secondary rate limit' }, { status: 403 }));
+    expect(await codeOf(fetchGitHubCommits('o', 'r', { fetchImpl: mockFetch }))).toBe('RATE_LIMIT');
+  });
+
+  it('keeps 403 without rate-limit signals as UNAUTHORIZED', async () => {
+    const mockFetch = vi.fn().mockResolvedValue(json({ message: 'Resource not accessible' }, { status: 403 }));
+    expect(await codeOf(fetchGitHubCommits('o', 'r', { fetchImpl: mockFetch }))).toBe('UNAUTHORIZED');
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries rate limits that carry a short Retry-After', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(json({ message: 'secondary rate limit' }, { status: 429, headers: { 'retry-after': '0' } }))
+      .mockResolvedValueOnce(json(page(3)));
+
+    await expect(fetchGitHubCommits('o', 'r', { fetchImpl: mockFetch })).resolves.toHaveLength(3);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries server errors and network failures with backoff', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(json({ message: 'Bad gateway' }, { status: 502 }))
+      .mockRejectedValueOnce(new Error('ECONNRESET'))
+      .mockResolvedValueOnce(json(page(2)));
+
+    const commits = await fetchGitHubCommits('o', 'r', { fetchImpl: mockFetch, retryBaseDelayMs: 0 });
+
+    expect(commits).toHaveLength(2);
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('gives up after maxRetries', async () => {
+    const mockFetch = vi.fn().mockResolvedValue(json({ message: 'boom' }, { status: 500 }));
+    expect(
+      await codeOf(fetchGitHubCommits('o', 'r', { fetchImpl: mockFetch, maxRetries: 2, retryBaseDelayMs: 0 }))
+    ).toBe('UNKNOWN');
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('hints at private repositories on 404 without a token', async () => {
+    const mockFetch = vi.fn().mockResolvedValue(json({ message: 'Not Found' }, { status: 404 }));
+    await expect(fetchGitHubCommits('o', 'r', { fetchImpl: mockFetch })).rejects.toThrow(/githubToken/);
+  });
+
+  it('encodes owner and repo in the request path', async () => {
+    const mockFetch = vi.fn().mockResolvedValue(json([]));
+    await fetchGitHubCommits('o', 'r.js', { fetchImpl: mockFetch });
+    expect(mockFetch.mock.calls[0][0]).toMatch(/^https:\/\/api\.github\.com\/repos\/o\/r\.js\/commits\?/);
+  });
+});
+
+describe('parseNextLink', () => {
+  it('extracts the next URL', () => {
+    expect(parseNextLink('<https://a/2>; rel="next", <https://a/5>; rel="last"')).toBe('https://a/2');
+    expect(parseNextLink('<https://a/1>; rel="prev"')).toBeUndefined();
+  });
+
+});
+
+describe('fetchGitHubCommits default invocation', () => {
+  it('calls fetchImpl without binding it to another object (browser fetch requires this)', async () => {
+    const strictFetch = function (this: unknown) {
+      if (this !== undefined && this !== globalThis) {
+        throw new TypeError("Failed to execute 'fetch' on 'Window': Illegal invocation");
+      }
+      return Promise.resolve(new Response('[]'));
+    } as unknown as typeof fetch;
+
+    await expect(fetchGitHubCommits('o', 'r', { fetchImpl: strictFetch, maxRetries: 0 })).resolves.toEqual([]);
   });
 });
