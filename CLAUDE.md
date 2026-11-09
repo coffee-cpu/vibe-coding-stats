@@ -179,8 +179,15 @@ npm test -w packages/core -- sessions.test.ts
 # Watch mode for tests
 npm test -w packages/core -- --watch
 
+# Tests with coverage thresholds (what CI runs)
+npm run test:coverage -w packages/core
+
 # Lint (ESLint flat config: eslint.config.mjs)
 npm run lint
+
+# Formatting (Prettier: .prettierrc.json); CI runs format:check
+npm run format
+npm run format:check
 
 # Type check (core src + tests via tsconfig.test.json, and the demo)
 npm run type-check
@@ -190,10 +197,13 @@ npm run dev -w demo
 
 # Build demo for deployment (resolves the library from packages/core/src; no core build needed)
 npm run build -w demo
+
+# Demo end-to-end tests (Playwright; GitHub API mocked via page.route)
+npm run test:e2e -w demo -- --trace off
 ```
 
 Development requires Node.js 22.12+ (vitest 5, vite 8, tsup 9). The published library supports Node.js 18+.
-CI (`.github/workflows/ci.yml`) runs lint, type-check, tests and both builds on Node 22 and 24.
+CI (`.github/workflows/ci.yml`) runs lint, format check, type-check, tests with coverage and both builds on Node 22 and 24, plus a Playwright e2e job for the demo.
 
 ## Testing Requirements
 
@@ -283,7 +293,7 @@ These are inherent to the approach and should be documented but not "fixed":
 - Test each layer independently with mocked dependencies
 - Integration tests should cover the full pipeline (see `integration.test.ts`)
 - When refactoring, ensure all existing tests still pass
-- Current test count: 208 tests across 8 test files
+- Current test count: 213 core tests across 8 test files, plus 6 demo e2e tests in `demo/e2e/`
 - Type-check tests too (`npm run type-check -w packages/core` includes `tsconfig.test.json`)
 - Inject `fetchImpl` in tests; pass `maxRetries: 0` or `retryBaseDelayMs: 0` to keep error tests fast
 - Always call `fetchImpl` as a plain function — browsers throw "Illegal invocation" if `fetch` is called as a method of another object

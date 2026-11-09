@@ -197,7 +197,7 @@ Main function to get repository statistics.
   timezone?: string;              // default: "UTC" (any IANA timezone)
   githubToken?: string;           // optional, for higher rate limits and private repos
   perPage?: number;               // default: 100 (GitHub's maximum; larger values are clamped)
-  maxPages?: number;              // default: unlimited
+  maxPages?: number;              // default: unlimited (see `truncated` in the result)
   fetchImpl?: typeof fetch;       // custom fetch (testing, proxies)
 
   // Retries (network errors, 5xx, rate limits with a short Retry-After)
@@ -238,6 +238,7 @@ Promise<{
   };
   perAuthor: AuthorStats[];
   perDay: DayStats[];
+  truncated: boolean; // true if maxPages stopped before the end of the history
 }>;
 ```
 
@@ -310,8 +311,12 @@ Unauthenticated requests are limited to 60 per hour (each page of 100 commits is
 ```typescript
 const result = await getRepoStats(
   { repo: 'owner/repo' },
-  { githubToken: process.env.GITHUB_TOKEN }
+  { githubToken: process.env.GITHUB_TOKEN, maxPages: 50 }
 );
+
+if (result.truncated) {
+  console.log('Only the most recent 5,000 commits were analyzed');
+}
 ```
 
 Get a GitHub token from: https://github.com/settings/tokens. A fine-grained token with no extra permissions is enough for public repositories; private repositories need read access to their contents.
@@ -417,15 +422,23 @@ npm test -w packages/core
 # Run tests in watch mode
 npm run test:watch -w packages/core
 
-# Lint and type check (library, tests and demo)
+# Run tests with a coverage report (fails below the thresholds in vitest.config.ts)
+npm run test:coverage -w packages/core
+
+# Lint, check formatting and type check (library, tests and demo)
 npm run lint
+npm run format:check   # `npm run format` to fix
 npm run type-check
 
 # Run demo locally (uses the library source directly, no build needed)
 npm run dev -w demo
+
+# Demo end-to-end tests (Playwright, GitHub API mocked)
+npx playwright install chromium   # once
+npm run test:e2e -w demo
 ```
 
-CI runs lint, type-check, tests and both builds on every push to `main` and every pull request.
+CI runs lint, formatting, type-check, tests with coverage, both builds and the demo end-to-end tests on every push to `main` and every pull request.
 
 ## Contributing
 
