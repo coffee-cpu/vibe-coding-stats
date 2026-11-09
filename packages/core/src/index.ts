@@ -1,5 +1,5 @@
 import type { RepoInput, StatsOptions, RepoStats } from './model/types.js';
-import { parseRepoInput, fetchGitHubCommits } from './api/github.js';
+import { parseRepoInput, fetchGitHubCommitPages } from './api/github.js';
 import { buildSessions } from './logic/sessions.js';
 import { aggregateByAuthor, aggregateByDay, calculateAggregateStats } from './logic/aggregate.js';
 import { resolveOptions } from './logic/options.js';
@@ -54,7 +54,7 @@ export async function getRepoStats(
   }
 
   // fetch → transform → unify identities → filter → sessions → aggregate
-  const rawCommits = await fetchGitHubCommits(owner, repo, options);
+  const { commits: rawCommits, truncated } = await fetchGitHubCommitPages(owner, repo, options);
   const commits = unifyAuthorIdentities(rawCommits.map(transformGitHubCommit)).filter((commit) =>
     shouldIncludeCommit(commit, options)
   );
@@ -70,6 +70,7 @@ export async function getRepoStats(
     totals: calculateAggregateStats(sessions),
     perAuthor: aggregateByAuthor(sessions),
     perDay: aggregateByDay(sessions),
+    truncated,
   };
 
   setInCache(cacheKey, result, options);

@@ -640,4 +640,21 @@ describe('getRepoStats integration', () => {
       expect(stats.totals.totalCommits).toBe(1);
     });
   });
+
+  it('reports truncated in RepoStats, including from the cache', async () => {
+    const commits = Array.from({ length: 100 }, (_, i) =>
+      createMockGitHubCommit(`sha${i}`, 'Alice', 'alice', new Date(Date.UTC(2024, 0, 1, 0, i)).toISOString())
+    );
+    const mockFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify(commits)));
+
+    const first = await getRepoStats({ repo: 'owner/repo' }, { maxPages: 1, fetchImpl: mockFetch });
+    const cached = await getRepoStats({ repo: 'owner/repo' }, { maxPages: 1, fetchImpl: mockFetch });
+    expect(first.truncated).toBe(true);
+    expect(cached.truncated).toBe(true);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    const small = vi.fn().mockResolvedValue(new Response(JSON.stringify(commits.slice(0, 3))));
+    const complete = await getRepoStats({ repo: 'owner/small' }, { maxPages: 1, fetchImpl: small });
+    expect(complete.truncated).toBe(false);
+  });
 });

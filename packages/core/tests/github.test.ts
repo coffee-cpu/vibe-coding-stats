@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { parseRepoInput, fetchGitHubCommits, parseNextLink } from '../src/api/github.js';
+import {
+  parseRepoInput,
+  fetchGitHubCommits,
+  fetchGitHubCommitPages,
+  parseNextLink,
+} from '../src/api/github.js';
 import { StatsError } from '../src/model/types.js';
 import type { GitHubCommit } from '../src/model/types.js';
 
@@ -461,5 +466,52 @@ describe('fetchGitHubCommits default invocation', () => {
     } as unknown as typeof fetch;
 
     await expect(fetchGitHubCommits('o', 'r', { fetchImpl: strictFetch, maxRetries: 0 })).resolves.toEqual([]);
+  });
+});
+
+describe('fetchGitHubCommitPages truncation', () => {
+  const commit = (sha: string): GitHubCommit => ({
+    sha,
+    commit: { author: { name: 'A', email: 'a@x', date: '2024-01-15T14:00:00Z' }, message: 'm' },
+    author: { login: 'a', type: 'User' },
+    parents: [{ sha: 'p' }],
+  });
+  const page = (n: number) => Array.from({ length: n }, (_, i) => commit(`s${i}`));
+  const respond = (body: unknown, headers?: Record<string, string>) =>
+    new Response(JSON.stringify(body), { status: 200, headers });
+
+  it('is truncated when maxPages stops before a next page (Link header)', async () => {
+    const mockFetch = vi.fn().mockResolvedValue(respond(page(100), { link: '<https://a/2>; rel="next"' }));
+    const result = await fetchGitHubCommitPages('o', 'r', { fetchImpl: mockFetch, maxPages: 1 });
+    expect(result).toMatchObject({ truncated: true });
+    expect(result.commits).toHaveLength(100);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('is truncated when maxPages stops on a full page without a Link header', async () => {
+    const mockFetch = vi.fn().mockResolvedValue(respond(page(100)));
+    const result = await fetchGitHubCommitPages('o', 'r', { fetchImpl: mockFetch, maxPages: 1 });
+    expect(result.truncated).toBe(true);
+  });
+
+  it('is not truncated when the last page is reached exactly at maxPages', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(respond(page(100), { link: '<https://a/2>; rel="next"' }))
+      .mockResolvedValueOnce(respond(page(10), { link: '<https://a/1>; rel="prev"' }));
+    const result = await fetchGitHubCommitPages('o', 'r', { fetchImpl: mockFetch, maxPages: 2 });
+    expect(result.truncated).toBe(false);
+    expect(result.commits).toHaveLength(110);
+  });
+
+  it('is not truncated without maxPages or for empty repositories', async () => {
+    const full = vi.fn().mockResolvedValueOnce(respond(page(5)));
+    expect((await fetchGitHubCommitPages('o', 'r', { fetchImpl: full })).truncated).toBe(false);
+
+    const empty = vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: 'empty' }), { status: 409 }));
+    expect(await fetchGitHubCommitPages('o', 'r', { fetchImpl: empty, maxPages: 1 })).toEqual({
+      commits: [],
+      truncated: false,
+    });
   });
 });
