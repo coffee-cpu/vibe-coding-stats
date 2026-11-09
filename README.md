@@ -188,10 +188,15 @@ Main function to get repository statistics.
   excludeMergeCommits?: boolean;  // default: false
 
   // Settings
-  timezone?: string;              // default: "UTC"
-  githubToken?: string;           // optional, for higher rate limits
-  perPage?: number;               // default: 100
-  maxPages?: number;
+  timezone?: string;              // default: "UTC" (any IANA timezone)
+  githubToken?: string;           // optional, for higher rate limits and private repos
+  perPage?: number;               // default: 100 (GitHub's maximum; larger values are clamped)
+  maxPages?: number;              // default: unlimited
+  fetchImpl?: typeof fetch;       // custom fetch (testing, proxies)
+
+  // Retries (network errors, 5xx, rate limits with a short Retry-After)
+  maxRetries?: number;            // default: 2
+  retryBaseDelayMs?: number;      // default: 1000 (exponential backoff)
 
   // Caching
   cache?: 'memory' | 'none';      // default: 'memory'
@@ -230,10 +235,57 @@ Promise<{
 }>
 ```
 
+**Input handling:**
+
+- URLs may include paths, query strings and fragments (`https://github.com/owner/repo/tree/main?tab=readme`), SSH form (`git@github.com:owner/repo.git`) and a `.git` suffix.
+- Options are validated before any request: an unknown timezone, non-positive `sessionTimeoutMin`, negative `firstCommitBonusMin`, unparseable dates or `since` later than `until` throw `StatsError` with code `INVALID_OPTIONS`.
+- An empty repository returns zero metrics instead of an error.
+
+### Errors
+
+All failures are thrown as `StatsError` with a `code`:
+
+| Code | When |
+|---|---|
+| `INVALID_REPO` | Repo string or URL can't be parsed |
+| `INVALID_OPTIONS` | An option is out of range or malformed |
+| `NOT_FOUND` | Repository doesn't exist, or is private and no token with access was given |
+| `UNAUTHORIZED` | Bad token (401) or access forbidden (403) |
+| `RATE_LIMIT` | GitHub rate limit hit (403 with exhausted quota, secondary limits, or 429); the message includes the reset time when GitHub provides it |
+| `NETWORK` | The request failed after retries, or the response couldn't be parsed |
+| `UNKNOWN` | Any other GitHub error (e.g. persistent 5xx) |
+
+```typescript
+import { getRepoStats, StatsError } from 'vibe-coding-stats';
+
+try {
+  await getRepoStats({ repo: 'owner/repo' });
+} catch (err) {
+  if (err instanceof StatsError && err.code === 'RATE_LIMIT') {
+    // retry later or pass githubToken
+  }
+}
+```
+
+### `parseRepoInput(input)`
+
+Normalizes `{ repo }` / `{ url }` input to `{ owner, repo }` the same way `getRepoStats` does (throws `StatsError('INVALID_REPO')`).
+
+```typescript
+import { parseRepoInput } from 'vibe-coding-stats';
+
+parseRepoInput({ url: 'https://github.com/owner/repo.git' }); // { owner: 'owner', repo: 'repo' }
+```
+
 ### Cache Utilities
 
 ```typescript
 import { clearCache, getCacheSize } from 'vibe-coding-stats';
+
+// Results are cached in memory for 15 minutes (cacheTTLms), keyed by repo and
+// every option that affects the result. At most 100 results are kept (least
+// recently used are evicted). Cached results are returned as copies, so
+// mutating a result never affects later calls.
 
 // Clear the in-memory cache
 clearCache();
@@ -247,7 +299,7 @@ console.log(`Cache has ${size} entries`);
 
 ### GitHub Rate Limiting
 
-Unauthenticated requests are limited to 60 per hour. For production use or analyzing large repositories, provide a GitHub token:
+Unauthenticated requests are limited to 60 per hour (each page of 100 commits is one request). For production use or analyzing large repositories, provide a GitHub token, and consider `maxPages` to cap very large histories:
 
 ```typescript
 const result = await getRepoStats(
@@ -256,7 +308,9 @@ const result = await getRepoStats(
 );
 ```
 
-Get a GitHub token from: https://github.com/settings/tokens (requires `public_repo` scope for public repos)
+Get a GitHub token from: https://github.com/settings/tokens. A fine-grained token with no extra permissions is enough for public repositories; private repositories need read access to their contents.
+
+When GitHub tells the client how long to wait (`Retry-After`, or a quota reset within a minute), the request is retried automatically; longer waits fail fast with `RATE_LIMIT`.
 
 ## TypeScript Support
 
@@ -305,6 +359,16 @@ For single-commit sessions:
 duration = firstCommitBonusMin (default: 15 minutes)
 ```
 
+### Filtering
+
+- **Bots** (`excludeBots: true`, default) are detected from GitHub's account type (`Bot`), the `[bot]` login suffix used by GitHub Apps, and whole-word matches of well-known automation names (dependabot, renovate, github-actions, …). People whose names merely contain "bot" (e.g. "Talbot") are kept.
+- **Date range**: `since`/`until` are sent to GitHub (which filters by committer date) and re-applied to each commit's author date, which is what sessions are built from.
+- **Authors** match a GitHub login or git author name, case-insensitively.
+
+### Author Identity
+
+Authors are grouped by GitHub login. Commits that GitHub couldn't link to an account (e.g. made with an unregistered email) are attributed to the login that uses the same email, or the same name when that name maps to exactly one login.
+
 ### Cross-Midnight Sessions
 
 Sessions can span across midnight and are treated as a single continuous session. The session is assigned to the day it started (based on the first commit's timestamp in the configured timezone).
@@ -313,14 +377,14 @@ Sessions can span across midnight and are treated as a single continuous session
 
 - **totalHours**: Sum of all session durations
 - **sessionsCount**: Number of distinct coding sessions
-- **devDays**: Number of calendar days with at least one commit
+- **devDays**: Number of distinct days (in the configured timezone) on which at least one session started. Like `perDay`, a session that crosses midnight counts for the day it started
 - **totalCommits**: Total commit count after filtering
 - **avgCommitsPerSession**: totalCommits / sessionsCount
 - **avgSessionsPerDay**: sessionsCount / devDays
 - **longestSessionHours**: Duration of the longest single coding session
 - **avgSessionHours**: Average duration of coding sessions (totalHours / sessionsCount)
-- **mostProductiveDayOfWeek**: Day of week with most total coding hours (e.g., "Monday")
-- **longestStreakDays**: Longest consecutive days with commits
+- **mostProductiveDayOfWeek**: Day of week (in the configured timezone) with most total coding hours (e.g., "Monday")
+- **longestStreakDays**: Longest run of consecutive dev days
 - **minTimeBetweenSessionsMin**: Minimum time between consecutive sessions by the same author (in minutes)
 - **avgMinutesBetweenCommits**: Average time in minutes between consecutive commits within sessions (undefined if all sessions are single-commit)
 - **maxMinutesBetweenCommits**: Maximum time in minutes between consecutive commits within sessions (undefined if all sessions are single-commit)
@@ -333,9 +397,12 @@ This library provides **approximate** coding activity metrics based on commit hi
 - **Rebases and force-pushes may affect accuracy** - Git history rewriting can alter timestamps and commit counts
 - **Doesn't capture non-coding time** - Code review, meetings, debugging, research, and thinking time are not measured
 - **Session detection is heuristic** - The timeout-based approach may occasionally split or merge sessions incorrectly
-- **Author identification** - Based on Git author info, which can be inconsistent across different machines or configurations
+- **Author identification** - Based on Git author info, which can be inconsistent across different machines or configurations (unlinked commits are matched to a login by email or unique name, but not every case can be resolved)
+- **Commits authored inside the range but committed after `until`** are not returned by GitHub and cannot be counted
 
 ## Development
+
+Requires Node.js 22.12+ for development (the published library runs on Node.js 18+ and modern browsers).
 
 ```bash
 # Install dependencies
@@ -350,12 +417,15 @@ npm test -w packages/core
 # Run tests in watch mode
 npm run test:watch -w packages/core
 
-# Type check
+# Lint and type check (library, tests and demo)
+npm run lint
 npm run type-check
 
-# Run demo locally
+# Run demo locally (uses the library source directly, no build needed)
 npm run dev -w demo
 ```
+
+CI runs lint, type-check, tests and both builds on every push to `main` and every pull request.
 
 ## Contributing
 

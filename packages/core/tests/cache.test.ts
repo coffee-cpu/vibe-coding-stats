@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   generateCacheKey,
   getFromCache,
@@ -6,6 +6,7 @@ import {
   clearCache,
   getCacheSize,
 } from '../src/util/cache.js';
+import { DEFAULT_CACHE_TTL_MS, MAX_CACHE_ENTRIES } from '../src/util/cache.js';
 import type { RepoStats, StatsOptions } from '../src/model/types.js';
 
 describe('Cache', () => {
@@ -82,6 +83,9 @@ describe('Cache', () => {
         totalCommits: 20,
         avgCommitsPerSession: 4,
         avgSessionsPerDay: 1.67,
+        longestSessionHours: 3,
+        avgSessionHours: 2,
+        longestStreakDays: 2,
       },
       perAuthor: [],
       perDay: [],
@@ -168,6 +172,9 @@ describe('Cache', () => {
           totalCommits: 20,
           avgCommitsPerSession: 4,
           avgSessionsPerDay: 1.67,
+          longestSessionHours: 3,
+          avgSessionHours: 2,
+          longestStreakDays: 2,
         },
         perAuthor: [],
         perDay: [],
@@ -200,6 +207,9 @@ describe('Cache', () => {
           totalCommits: 20,
           avgCommitsPerSession: 4,
           avgSessionsPerDay: 1.67,
+          longestSessionHours: 3,
+          avgSessionHours: 2,
+          longestStreakDays: 2,
         },
         perAuthor: [],
         perDay: [],
@@ -215,6 +225,97 @@ describe('Cache', () => {
 
       setInCache('key1', mockStats, options); // Update existing
       expect(getCacheSize()).toBe(2);
+    });
+  });
+
+  describe('key completeness and normalization', () => {
+    const key = (options: StatsOptions) => generateCacheKey('owner', 'repo', options);
+
+    it('includes every option that changes the result', () => {
+      expect(key({ maxPages: 1 })).not.toBe(key({}));
+      expect(key({ perPage: 50 })).not.toBe(key({}));
+      expect(key({ githubToken: 'a' })).not.toBe(key({ githubToken: 'b' }));
+      expect(key({ githubToken: 'a' })).not.toBe(key({}));
+    });
+
+    it('never contains the raw token', () => {
+      expect(key({ githubToken: 'ghp_secret_value' })).not.toContain('ghp_secret_value');
+    });
+
+    it('normalizes equivalent inputs to the same key', () => {
+      expect(key({ since: new Date('2024-01-01T00:00:00Z') })).toBe(key({ since: '2024-01-01T00:00:00Z' }));
+      expect(key({ authors: ['Bob', 'alice'] })).toBe(key({ authors: ['alice', 'bob'] }));
+      expect(key({ perPage: 500 })).toBe(key({ perPage: 100 }));
+      expect(generateCacheKey('Owner', 'Repo', {})).toBe(key({}));
+    });
+  });
+
+  describe('isolation, TTL and eviction', () => {
+    const stats = (repo: string): RepoStats => ({
+      repo,
+      period: {},
+      config: { sessionTimeoutMin: 45, firstCommitBonusMin: 15, timezone: 'UTC' },
+      totals: {
+        totalHours: 1,
+        sessionsCount: 1,
+        devDays: 1,
+        totalCommits: 1,
+        avgCommitsPerSession: 1,
+        avgSessionsPerDay: 1,
+        longestSessionHours: 1,
+        avgSessionHours: 1,
+        longestStreakDays: 1,
+      },
+      perAuthor: [],
+      perDay: [{ date: '2024-01-01', totalHours: 1, sessionsCount: 1, totalCommits: 1, authors: ['a'] }],
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('returns copies, so callers cannot corrupt cached data', () => {
+      const original = stats('o/r');
+      setInCache('k', original, {});
+      original.totals.totalHours = 999;
+
+      const first = getFromCache('k', {})!;
+      first.perDay[0].authors.push('mallory');
+
+      const second = getFromCache('k', {})!;
+      expect(second.totals.totalHours).toBe(1);
+      expect(second.perDay[0].authors).toEqual(['a']);
+      expect(second).not.toBe(first);
+    });
+
+    it('defaults to a 15 minute TTL', () => {
+      vi.useFakeTimers();
+      expect(DEFAULT_CACHE_TTL_MS).toBe(15 * 60 * 1000);
+      setInCache('k', stats('o/r'), {});
+      vi.advanceTimersByTime(DEFAULT_CACHE_TTL_MS - 1);
+      expect(getFromCache('k', {})).not.toBeNull();
+      vi.advanceTimersByTime(DEFAULT_CACHE_TTL_MS + 1);
+      expect(getFromCache('k', {})).toBeNull();
+    });
+
+    it('drops expired entries when new ones are written', () => {
+      vi.useFakeTimers();
+      setInCache('old', stats('o/r'), {});
+      vi.advanceTimersByTime(DEFAULT_CACHE_TTL_MS + 1);
+      setInCache('new', stats('o/r'), {});
+      expect(getCacheSize()).toBe(1);
+    });
+
+    it('evicts the least recently used entry beyond the size limit', () => {
+      for (let i = 0; i < MAX_CACHE_ENTRIES; i++) {
+        setInCache(`k${i}`, stats('o/r'), {});
+      }
+      getFromCache('k0', {}); // k0 is now most recently used
+      setInCache('overflow', stats('o/r'), {});
+
+      expect(getCacheSize()).toBe(MAX_CACHE_ENTRIES);
+      expect(getFromCache('k0', {})).not.toBeNull();
+      expect(getFromCache('k1', {})).toBeNull();
     });
   });
 });

@@ -67,11 +67,12 @@ git push && git push --tags
 
 The GitHub Action (`.github/workflows/publish.yml`) will:
 
-1. Verify the tag version matches `package.json`
+1. Install a pinned npm version with trusted-publishing support
 2. Install dependencies
-3. Run all tests
-4. Build the package
-5. Publish to npm with provenance attestation
+3. Verify the tag version matches `package.json`
+4. Lint, type-check and run all tests
+5. Build the package
+6. Publish to npm with provenance attestation (`prepublishOnly` only copies the README)
 
 ## Security Features
 

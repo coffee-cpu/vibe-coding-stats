@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { normalizeRepo } from '../repo';
 
 interface ShareButtonProps {
   repo: string;
@@ -6,24 +7,18 @@ interface ShareButtonProps {
 
 function ShareButton({ repo }: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => () => clearTimeout(timer.current), []);
 
   const handleShare = async () => {
-    // Normalize repo to owner/repo format
-    // If it's a full URL, extract owner/repo from it
-    let normalizedRepo = repo;
-    if (repo.includes('github.com')) {
-      const match = repo.match(/github\.com\/([^/]+\/[^/]+)/);
-      if (match) {
-        normalizedRepo = match[1];
-      }
-    }
-
-    const url = `${window.location.origin}${window.location.pathname}?repo=${encodeURIComponent(normalizedRepo)}`;
+    const url = `${window.location.origin}${window.location.pathname}?repo=${encodeURIComponent(normalizeRepo(repo))}`;
 
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
     }

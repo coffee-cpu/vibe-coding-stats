@@ -1,3 +1,5 @@
+> **Note:** this is the original design spec. Where it differs from the implementation, the README is authoritative.
+
 # vibe-coding-stats — Specification
 
 ## Overview
@@ -19,7 +21,7 @@ The library can also power a web demo (hosted on GitHub Pages) that visualizes t
 
 - `totalHours`: approximate total coding hours  
 - `sessionsCount`: number of coding sessions  
-- `devDays`: number of days with at least one commit  
+- `devDays`: number of distinct days on which at least one session started  
 - `totalCommits`: total commits  
 - `avgCommitsPerSession`: average commits per session  
 - `avgSessionsPerDay`: average sessions per development day  
@@ -84,9 +86,10 @@ export interface StatsOptions {
   timezone?: string;              // default: "UTC"
   githubToken?: string;           // optional for higher rate limit
   fetchImpl?: typeof fetch;
-  perPage?: number;               // default: 100
+  perPage?: number;               // default: 100 (GitHub maximum)
   maxPages?: number;
-  useGraphQL?: boolean;           // default: false
+  maxRetries?: number;            // default: 2
+  retryBaseDelayMs?: number;      // default: 1000
   cache?: 'memory' | 'none';      // default: 'memory'
   cacheTTLms?: number;            // default: 15 min
 }
@@ -114,7 +117,7 @@ export interface RepoStats {
   };
   perAuthor: AuthorStats[];
   perDay: DayStats[];
-  raw?: {
+  raw?: {  // deprecated: never populated
     commitSample?: Array<{
       sha: string;
       authorLogin?: string;
@@ -200,7 +203,8 @@ export type StatsErrorCode =
   | 'RATE_LIMIT'
   | 'NETWORK'
   | 'UNAUTHORIZED'
-  | 'UNSUPPORTED_PRIVATE_REPO'
+  | 'UNSUPPORTED_PRIVATE_REPO'   // deprecated, never thrown
+  | 'INVALID_OPTIONS'
   | 'UNKNOWN';
 ```
 

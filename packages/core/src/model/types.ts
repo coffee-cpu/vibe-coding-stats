@@ -23,17 +23,23 @@ export interface StatsOptions {
   timezone?: string; // default: "UTC"
   githubToken?: string; // optional for higher rate limit
   fetchImpl?: typeof fetch;
-  perPage?: number; // default: 100
-  maxPages?: number;
-  useGraphQL?: boolean; // default: false
+  perPage?: number; // default: 100 (GitHub maximum; larger values are clamped)
+  maxPages?: number; // default: unlimited
+  /** Retries for network errors, 5xx responses and short rate-limit waits. Default: 2 */
+  maxRetries?: number;
+  /** Base delay for exponential retry backoff, in ms. Default: 1000 */
+  retryBaseDelayMs?: number;
+  /** @deprecated Has never had any effect and will be removed in the next major version. */
+  useGraphQL?: boolean;
   cache?: 'memory' | 'none'; // default: 'memory'
-  cacheTTLms?: number; // default: 15 min
+  cacheTTLms?: number; // default: 900000 (15 min)
 }
 
 // Output types
 export interface AggregateStats {
   totalHours: number;
   sessionsCount: number;
+  /** Number of distinct days (in the configured timezone) on which at least one session started */
   devDays: number;
   totalCommits: number;
   avgCommitsPerSession: number;
@@ -42,7 +48,7 @@ export interface AggregateStats {
   avgSessionHours: number;
   /** Day of week with most total coding hours (e.g., "Monday", "Tuesday"). Undefined if no sessions. */
   mostProductiveDayOfWeek?: string;
-  /** Longest consecutive streak of days with commits */
+  /** Longest run of consecutive days on which a session started */
   longestStreakDays: number;
   /** Minimum time between consecutive sessions by the same author in minutes. Undefined if no author has 2+ sessions. */
   minTimeBetweenSessionsMin?: number;
@@ -63,6 +69,7 @@ export interface RepoStats {
   totals: AggregateStats;
   perAuthor: AuthorStats[];
   perDay: DayStats[];
+  /** @deprecated Never populated; will be removed in the next major version. */
   raw?: {
     commitSample?: Array<{
       sha: string;
@@ -90,8 +97,15 @@ export interface DayStats {
 // Internal types
 export interface Commit {
   sha: string;
+  /** Identity used for grouping: GitHub login when known, otherwise the git author name */
   author: string;
   authorLogin?: string;
+  /** Git author name as recorded in the commit */
+  authorName?: string;
+  /** Git author email as recorded in the commit */
+  authorEmail?: string;
+  /** GitHub account type ("User", "Bot", ...) when the commit is linked to an account */
+  authorType?: string;
   date: Date;
   message: string;
   isMerge?: boolean;
@@ -119,7 +133,9 @@ export type StatsErrorCode =
   | 'RATE_LIMIT'
   | 'NETWORK'
   | 'UNAUTHORIZED'
+  /** @deprecated Never thrown: GitHub answers 404 for private repos without access, reported as NOT_FOUND. */
   | 'UNSUPPORTED_PRIVATE_REPO'
+  | 'INVALID_OPTIONS'
   | 'UNKNOWN';
 
 export class StatsError extends Error {
