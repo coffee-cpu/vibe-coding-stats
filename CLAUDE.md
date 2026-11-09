@@ -309,14 +309,14 @@ export async function fetchData() {
 
 // In index.ts:
 const raw = await fetchData();
-const filtered = raw.filter(predicate);
-const transformed = filtered.map(transform);
+const transformed = raw.map(transform);
+const filtered = transformed.filter(predicate);
 ```
 
 **Filtering Pattern**:
 - Use array methods with predicates: `.filter(shouldIncludeCommit)`
 - Keep all filtering logic in `logic/filters.ts`
-- Filtering happens BEFORE transformation to reduce processing
+- Filtering happens AFTER transformation, so derived flags (`isBot`, `isMerge`) are computed once and identities are unified before author filters apply
 
 ## Testing and Best Practices
 
