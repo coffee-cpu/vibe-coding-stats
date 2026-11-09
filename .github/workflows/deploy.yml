@@ -25,14 +25,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build core package
-        run: npm run build -w packages/core
+      - name: Run core tests
+        run: npm test -w packages/core
 
       - name: Build demo
         run: npm run build -w demo

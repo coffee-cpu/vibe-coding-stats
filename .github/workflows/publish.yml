@@ -20,8 +20,9 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
 
+      # Trusted publishing needs npm >= 11.5.1; pin it so releases are reproducible
       - name: Install npm with OIDC support
-        run: npm install -g npm@latest
+        run: npm install -g npm@11.6.2
 
       - run: npm ci
 
@@ -34,6 +35,9 @@ jobs:
             exit 1
           fi
 
+      - run: npm run lint
+      - run: npm run type-check -w packages/core
       - run: npm test -w packages/core
       - run: npm run build -w packages/core
+      # prepublishOnly only copies the README; checks and build ran above
       - run: npm publish -w packages/core --provenance --access public
