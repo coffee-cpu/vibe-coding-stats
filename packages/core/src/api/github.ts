@@ -76,6 +76,25 @@ export async function fetchGitHubCommits(
   repo: string,
   options: FetchGitHubCommitsOptions = {}
 ): Promise<GitHubCommit[]> {
+  return (await fetchGitHubCommitPages(owner, repo, options)).commits;
+}
+
+/**
+ * Raw commits plus whether `maxPages` stopped the fetch before the history ended
+ */
+export interface GitHubCommitPages {
+  commits: GitHubCommit[];
+  truncated: boolean;
+}
+
+/**
+ * Like fetchGitHubCommits, but also reports whether the result was cut short by `maxPages`
+ */
+export async function fetchGitHubCommitPages(
+  owner: string,
+  repo: string,
+  options: FetchGitHubCommitsOptions = {}
+): Promise<GitHubCommitPages> {
   const {
     githubToken,
     since,
@@ -110,16 +129,20 @@ export async function fetchGitHubCommits(
   let page = 1;
 
   while (nextUrl) {
-    const response = await fetchWithRetry(nextUrl, { headers }, {
-      fetchImpl,
-      maxRetries,
-      retryBaseDelayMs,
-      hasToken: Boolean(githubToken),
-    });
+    const response = await fetchWithRetry(
+      nextUrl,
+      { headers },
+      {
+        fetchImpl,
+        maxRetries,
+        retryBaseDelayMs,
+        hasToken: Boolean(githubToken),
+      }
+    );
 
     if (response.status === 409) {
       // "Git Repository is empty."
-      return [];
+      return { commits: [], truncated: false };
     }
 
     let data: unknown;
@@ -134,22 +157,37 @@ export async function fetchGitHubCommits(
 
     commits.push(...(data as GitHubCommit[]));
 
-    if (data.length === 0 || (maxPages && page >= maxPages)) break;
-
-    const linkHeader = getHeader(response, 'link');
-    if (linkHeader !== null) {
-      nextUrl = parseNextLink(linkHeader);
-    } else {
-      // No Link header (e.g. a minimal mock): fall back to page size heuristics
-      if (data.length < perPage) break;
-      const url = new URL(nextUrl);
-      url.searchParams.set('page', String(page + 1));
-      nextUrl = url.toString();
+    const followingUrl: string | undefined =
+      data.length === 0 ? undefined : nextPageUrl(response, nextUrl, page, data.length, perPage);
+    if (followingUrl && maxPages && page >= maxPages) {
+      return { commits, truncated: true };
     }
+    nextUrl = followingUrl;
     page++;
   }
 
-  return commits;
+  return { commits, truncated: false };
+}
+
+/**
+ * URL of the page after the current one, or undefined on the last page
+ */
+function nextPageUrl(
+  response: Response,
+  currentUrl: string,
+  page: number,
+  pageLength: number,
+  perPage: number
+): string | undefined {
+  const linkHeader = getHeader(response, 'link');
+  if (linkHeader !== null) {
+    return parseNextLink(linkHeader);
+  }
+  // No Link header (e.g. a minimal mock): fall back to page size heuristics
+  if (pageLength < perPage) return undefined;
+  const url = new URL(currentUrl);
+  url.searchParams.set('page', String(page + 1));
+  return url.toString();
 }
 
 /**
@@ -223,7 +261,11 @@ function retryWaitMs(
       return retryAfter * 1000;
     }
     const resetAt = Number(getHeader(response, 'x-ratelimit-reset'));
-    if (getHeader(response, 'x-ratelimit-remaining') === '0' && Number.isFinite(resetAt) && resetAt > 0) {
+    if (
+      getHeader(response, 'x-ratelimit-remaining') === '0' &&
+      Number.isFinite(resetAt) &&
+      resetAt > 0
+    ) {
       return Math.max(0, resetAt * 1000 - Date.now());
     }
     // No hint about when the limit lifts: fail fast rather than guess
@@ -281,12 +323,17 @@ async function toStatsError(response: Response, hasToken: boolean): Promise<Stat
   } else if (isRateLimited) {
     errorCode = 'RATE_LIMIT';
     const resetAt = reset ? new Date(Number(reset) * 1000) : undefined;
-    message = resetAt && !Number.isNaN(resetAt.getTime())
-      ? `GitHub API rate limit exceeded (resets at ${resetAt.toISOString()})`
-      : 'GitHub API rate limit exceeded';
+    message =
+      resetAt && !Number.isNaN(resetAt.getTime())
+        ? `GitHub API rate limit exceeded (resets at ${resetAt.toISOString()})`
+        : 'GitHub API rate limit exceeded';
   } else if (status === 403) {
     errorCode = 'UNAUTHORIZED';
   }
 
-  return new StatsError(errorCode, message, { status, response, rateLimitReset: reset ?? undefined });
+  return new StatsError(errorCode, message, {
+    status,
+    response,
+    rateLimitReset: reset ?? undefined,
+  });
 }

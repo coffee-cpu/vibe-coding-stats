@@ -14,6 +14,8 @@
     "test": "npm run test -w packages/core",
     "test:watch": "npm run test:watch -w packages/core",
     "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "type-check": "npm run type-check -w packages/core && npm run type-check -w demo",
     "clean": "rm -rf packages/core/dist demo/dist node_modules/.cache"
   },

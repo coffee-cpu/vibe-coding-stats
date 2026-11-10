@@ -11,6 +11,15 @@ function describeError(err: unknown, hasToken: boolean): string {
   return err instanceof Error ? err.message : 'Failed to analyze repository';
 }
 
+// Each page is one API request of 100 commits. Without a token GitHub allows
+// 60 requests per hour, so keep anonymous runs small enough to repeat.
+const MAX_PAGES_ANONYMOUS = 10;
+const MAX_PAGES_WITH_TOKEN = 50;
+
+function maxPagesFor(hasToken: boolean): number {
+  return hasToken ? MAX_PAGES_WITH_TOKEN : MAX_PAGES_ANONYMOUS;
+}
+
 function repoFromLocation(): string | null {
   return new URLSearchParams(window.location.search).get('repo');
 }
@@ -20,6 +29,8 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentRepo, setCurrentRepo] = useState<string>('');
+  // Whether the stats on screen were fetched with a token (sets the page cap)
+  const [usedToken, setUsedToken] = useState(false);
   // Kept in memory only; never written to the URL or browser storage
   const tokenRef = useRef<string | undefined>(undefined);
   // Ignore results of requests superseded by a newer one
@@ -34,8 +45,12 @@ function App() {
     setStats(null);
 
     try {
-      const result = await getRepoStats(toRepoInput(repo), { githubToken });
+      const result = await getRepoStats(toRepoInput(repo), {
+        githubToken,
+        maxPages: maxPagesFor(Boolean(githubToken)),
+      });
       if (id !== requestId.current) return;
+      setUsedToken(Boolean(githubToken));
       setStats(result);
 
       if (updateUrl) {
@@ -84,7 +99,8 @@ function App() {
           </h1>
         </div>
         <p className="text-lg lg:text-xl text-coffee-700 font-normal max-w-2xl mx-auto">
-          Brew up insights from GitHub repositories • Discover developer activity with a warm, cozy touch
+          Brew up insights from GitHub repositories • Discover developer activity with a warm, cozy
+          touch
         </p>
         <div className="flex items-center justify-center gap-2 text-coffee-600">
           <span className="text-sm font-medium">Powered by coffee and code</span>
@@ -109,11 +125,23 @@ function App() {
         {loading && (
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-warm-xl p-12 text-center">
             <div className="inline-block animate-spin text-6xl mb-4">⏳</div>
-            <p className="text-xl text-coffee-700 font-medium">
-              Analyzing repository...
-            </p>
-            <p className="text-sm text-coffee-500 mt-2">
-              Processing commits and sessions
+            <p className="text-xl text-coffee-700 font-medium">Analyzing repository...</p>
+            <p className="text-sm text-coffee-500 mt-2">Processing commits and sessions</p>
+          </div>
+        )}
+
+        {stats && !loading && stats.truncated && (
+          <div
+            className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-lg shadow-warm"
+            role="status"
+            data-testid="truncated-notice"
+          >
+            <p className="text-amber-900">
+              Showing the most recent {(maxPagesFor(usedToken) * 100).toLocaleString()} commits
+              only.
+              {usedToken
+                ? ' Older history was not analyzed.'
+                : ' Add a GitHub token under "Advanced" to analyze more of the history.'}
             </p>
           </div>
         )}
@@ -131,8 +159,8 @@ function App() {
             className="text-coffee-700 hover:text-coffee-900 font-semibold underline decoration-coffee-300 hover:decoration-coffee-500 transition-colors"
           >
             vibe-coding-stats
-          </a>
-          {' '}• Made with ❤️
+          </a>{' '}
+          • Made with ❤️
         </p>
       </footer>
     </div>

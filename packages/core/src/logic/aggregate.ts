@@ -129,9 +129,12 @@ function calculateMinTimeBetweenSessions(sessions: Session[]): number | undefine
   for (const authorSessions of groupBy(sessions, (s) => s.author).values()) {
     if (authorSessions.length < 2) continue;
 
-    const sorted = [...authorSessions].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    const sorted = [...authorSessions].sort(
+      (a, b) => a.startTime.getTime() - b.startTime.getTime()
+    );
     for (let i = 1; i < sorted.length; i++) {
-      const gapMinutes = (sorted[i].startTime.getTime() - sorted[i - 1].endTime.getTime()) / MS_PER_MINUTE;
+      const gapMinutes =
+        (sorted[i].startTime.getTime() - sorted[i - 1].endTime.getTime()) / MS_PER_MINUTE;
       if (gapMinutes > 0) {
         minGapMinutes = Math.min(minGapMinutes, gapMinutes);
       }

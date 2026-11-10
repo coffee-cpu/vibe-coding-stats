@@ -12,20 +12,20 @@ The library can also power a web demo (hosted on GitHub Pages) that visualizes t
 
 ## Goals
 
-- **Language:** TypeScript  
-- **Distribution:** npm  
-- **Demo:** React + Vite app on GitHub Pages  
-- **Purpose:** Provide lightweight, fun, approximate coding metrics for any public repo  
+- **Language:** TypeScript
+- **Distribution:** npm
+- **Demo:** React + Vite app on GitHub Pages
+- **Purpose:** Provide lightweight, fun, approximate coding metrics for any public repo
 
 ### Core Metrics
 
-- `totalHours`: approximate total coding hours  
-- `sessionsCount`: number of coding sessions  
-- `devDays`: number of distinct days on which at least one session started  
-- `totalCommits`: total commits  
-- `avgCommitsPerSession`: average commits per session  
-- `avgSessionsPerDay`: average sessions per development day  
-- `coffeeCups`: one cup of coffee per session ☕  
+- `totalHours`: approximate total coding hours
+- `sessionsCount`: number of coding sessions
+- `devDays`: number of distinct days on which at least one session started
+- `totalCommits`: total commits
+- `avgCommitsPerSession`: average commits per session
+- `avgSessionsPerDay`: average sessions per development day
+- `coffeeCups`: one cup of coffee per session ☕
 
 ---
 
@@ -41,9 +41,10 @@ duration = (lastCommitTime - firstCommitTime) + firstCommitBonusMin
 If there is only one commit, duration = `firstCommitBonusMin`.
 
 Default configuration:
+
 ```ts
-sessionTimeoutMin = 45
-firstCommitBonusMin = 15
+sessionTimeoutMin = 45;
+firstCommitBonusMin = 15;
 ```
 
 ---
@@ -72,26 +73,26 @@ console.log(stats);
 
 ```ts
 export type RepoInput =
-  | { repo: string }              // "owner/repo"
-  | { url: string };              // e.g. https://github.com/owner/repo(.git)
+  | { repo: string } // "owner/repo"
+  | { url: string }; // e.g. https://github.com/owner/repo(.git)
 
 export interface StatsOptions {
-  sessionTimeoutMin?: number;     // default: 45
-  firstCommitBonusMin?: number;   // default: 15
+  sessionTimeoutMin?: number; // default: 45
+  firstCommitBonusMin?: number; // default: 15
   since?: string | Date;
   until?: string | Date;
   authors?: string[];
-  excludeBots?: boolean;          // default: true
-  excludeMergeCommits?: boolean;  // default: false
-  timezone?: string;              // default: "UTC"
-  githubToken?: string;           // optional for higher rate limit
+  excludeBots?: boolean; // default: true
+  excludeMergeCommits?: boolean; // default: false
+  timezone?: string; // default: "UTC"
+  githubToken?: string; // optional for higher rate limit
   fetchImpl?: typeof fetch;
-  perPage?: number;               // default: 100 (GitHub maximum)
+  perPage?: number; // default: 100 (GitHub maximum)
   maxPages?: number;
-  maxRetries?: number;            // default: 2
-  retryBaseDelayMs?: number;      // default: 1000
-  cache?: 'memory' | 'none';      // default: 'memory'
-  cacheTTLms?: number;            // default: 15 min
+  maxRetries?: number; // default: 2
+  retryBaseDelayMs?: number; // default: 1000
+  cache?: 'memory' | 'none'; // default: 'memory'
+  cacheTTLms?: number; // default: 15 min
 }
 ```
 
@@ -117,7 +118,8 @@ export interface RepoStats {
   };
   perAuthor: AuthorStats[];
   perDay: DayStats[];
-  raw?: {  // deprecated: never populated
+  raw?: {
+    // deprecated: never populated
     commitSample?: Array<{
       sha: string;
       authorLogin?: string;
@@ -136,7 +138,7 @@ export interface AuthorStats {
 }
 
 export interface DayStats {
-  date: string;              // ISO date string (YYYY-MM-DD)
+  date: string; // ISO date string (YYYY-MM-DD)
   totalHours: number;
   sessionsCount: number;
   totalCommits: number;
@@ -203,7 +205,7 @@ export type StatsErrorCode =
   | 'RATE_LIMIT'
   | 'NETWORK'
   | 'UNAUTHORIZED'
-  | 'UNSUPPORTED_PRIVATE_REPO'   // deprecated, never thrown
+  | 'UNSUPPORTED_PRIVATE_REPO' // deprecated, never thrown
   | 'INVALID_OPTIONS'
   | 'UNKNOWN';
 ```
@@ -334,7 +336,7 @@ vibe-coding-stats/
 
 **v0.1** — Core metrics + cross-midnight sessions + GitHub Pages demo
 **v0.2** — Caching, progress UI, better charts
-**v0.3** — Support GraphQL, file-level stats  
+**v0.3** — Support GraphQL, file-level stats
 
 ---
 

@@ -12,7 +12,7 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
 
   const toggleAuthor = (author: string) => {
-    setExpandedAuthors(prev => {
+    setExpandedAuthors((prev) => {
       const next = new Set(prev);
       if (next.has(author)) {
         next.delete(author);
@@ -31,8 +31,10 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
   };
 
   const metricExplanations: Record<string, string> = {
-    'Total Hours': 'Sum of all coding session durations. Sessions are groups of commits within 45 minutes of each other.',
-    'Coding Sessions': 'Number of distinct coding sessions. A new session starts after 45+ minutes of inactivity.',
+    'Total Hours':
+      'Sum of all coding session durations. Sessions are groups of commits within 45 minutes of each other.',
+    'Coding Sessions':
+      'Number of distinct coding sessions. A new session starts after 45+ minutes of inactivity.',
     'Longest Session': 'Duration of the longest single coding session in the repository.',
     'Avg Session': 'Average duration of coding sessions across all contributors.',
     'Dev Days': 'Number of distinct days on which at least one coding session started.',
@@ -46,18 +48,89 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
   };
 
   const statCards = [
-    { icon: '⏱️', value: totals.totalHours.toFixed(1), label: 'Total Hours', color: 'from-coffee-500 to-coffee-600' },
-    { icon: '💻', value: totals.sessionsCount, label: 'Coding Sessions', color: 'from-coffee-600 to-coffee-700' },
-    { icon: '🔥', value: `${totals.longestSessionHours.toFixed(1)}h`, label: 'Longest Session', color: 'from-amber-500 to-orange-600' },
-    { icon: '⏳', value: `${totals.avgSessionHours.toFixed(1)}h`, label: 'Avg Session', color: 'from-blue-500 to-blue-600' },
+    {
+      icon: '⏱️',
+      value: totals.totalHours.toFixed(1),
+      label: 'Total Hours',
+      color: 'from-coffee-500 to-coffee-600',
+    },
+    {
+      icon: '💻',
+      value: totals.sessionsCount,
+      label: 'Coding Sessions',
+      color: 'from-coffee-600 to-coffee-700',
+    },
+    {
+      icon: '🔥',
+      value: `${totals.longestSessionHours.toFixed(1)}h`,
+      label: 'Longest Session',
+      color: 'from-amber-500 to-orange-600',
+    },
+    {
+      icon: '⏳',
+      value: `${totals.avgSessionHours.toFixed(1)}h`,
+      label: 'Avg Session',
+      color: 'from-blue-500 to-blue-600',
+    },
     { icon: '📅', value: totals.devDays, label: 'Dev Days', color: 'from-cream-500 to-cream-600' },
-    { icon: '📝', value: totals.totalCommits, label: 'Total Commits', color: 'from-coffee-400 to-coffee-500' },
-    { icon: '📊', value: totals.avgCommitsPerSession.toFixed(2), label: 'Avg Commits/Session', color: 'from-cream-600 to-cream-700' },
-    { icon: '🎯', value: `${totals.longestStreakDays} days`, label: 'Longest Streak', color: 'from-green-500 to-green-600' },
-    ...(totals.mostProductiveDayOfWeek ? [{ icon: '📆', value: totals.mostProductiveDayOfWeek, label: 'Top Day of Week', color: 'from-purple-500 to-purple-600' }] : []),
-    ...(totals.minTimeBetweenSessionsMin !== undefined ? [{ icon: '🛋️', value: formatMinutes(totals.minTimeBetweenSessionsMin), label: 'Min Break Time', color: 'from-teal-500 to-teal-600' }] : []),
-    ...(totals.avgMinutesBetweenCommits !== undefined ? [{ icon: '⏰', value: formatMinutes(totals.avgMinutesBetweenCommits), label: 'Avg Commit Gap', color: 'from-indigo-500 to-indigo-600' }] : []),
-    ...(totals.maxMinutesBetweenCommits !== undefined ? [{ icon: '⌛', value: formatMinutes(totals.maxMinutesBetweenCommits), label: 'Max Commit Gap', color: 'from-rose-500 to-rose-600' }] : []),
+    {
+      icon: '📝',
+      value: totals.totalCommits,
+      label: 'Total Commits',
+      color: 'from-coffee-400 to-coffee-500',
+    },
+    {
+      icon: '📊',
+      value: totals.avgCommitsPerSession.toFixed(2),
+      label: 'Avg Commits/Session',
+      color: 'from-cream-600 to-cream-700',
+    },
+    {
+      icon: '🎯',
+      value: `${totals.longestStreakDays} days`,
+      label: 'Longest Streak',
+      color: 'from-green-500 to-green-600',
+    },
+    ...(totals.mostProductiveDayOfWeek
+      ? [
+          {
+            icon: '📆',
+            value: totals.mostProductiveDayOfWeek,
+            label: 'Top Day of Week',
+            color: 'from-purple-500 to-purple-600',
+          },
+        ]
+      : []),
+    ...(totals.minTimeBetweenSessionsMin !== undefined
+      ? [
+          {
+            icon: '🛋️',
+            value: formatMinutes(totals.minTimeBetweenSessionsMin),
+            label: 'Min Break Time',
+            color: 'from-teal-500 to-teal-600',
+          },
+        ]
+      : []),
+    ...(totals.avgMinutesBetweenCommits !== undefined
+      ? [
+          {
+            icon: '⏰',
+            value: formatMinutes(totals.avgMinutesBetweenCommits),
+            label: 'Avg Commit Gap',
+            color: 'from-indigo-500 to-indigo-600',
+          },
+        ]
+      : []),
+    ...(totals.maxMinutesBetweenCommits !== undefined
+      ? [
+          {
+            icon: '⌛',
+            value: formatMinutes(totals.maxMinutesBetweenCommits),
+            label: 'Max Commit Gap',
+            color: 'from-rose-500 to-rose-600',
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -81,7 +154,9 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
               <div className="text-3xl group-hover:scale-110 transition-transform duration-300">
                 {stat.icon}
               </div>
-              <div className={`text-2xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+              <div
+                className={`text-2xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}
+              >
                 {stat.value}
               </div>
               <div className="text-xs font-semibold text-coffee-700 uppercase tracking-wide">
@@ -111,9 +186,7 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
                 ×
               </button>
             </div>
-            <p className="text-coffee-700 leading-relaxed">
-              {metricExplanations[selectedMetric]}
-            </p>
+            <p className="text-coffee-700 leading-relaxed">{metricExplanations[selectedMetric]}</p>
           </div>
         </div>
       )}
@@ -175,7 +248,9 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
                   {/* Always visible metrics */}
                   <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                     <span className="text-coffee-700 font-medium">⏱️ Hours:</span>
-                    <span className="font-bold text-coffee-900">{author.totalHours.toFixed(1)}</span>
+                    <span className="font-bold text-coffee-900">
+                      {author.totalHours.toFixed(1)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                     <span className="text-coffee-700 font-medium">💻 Sessions:</span>
@@ -195,46 +270,64 @@ function StatsDisplay({ stats }: StatsDisplayProps) {
                     <>
                       <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                         <span className="text-coffee-700 font-medium">🔥 Longest:</span>
-                        <span className="font-bold text-coffee-900">{author.longestSessionHours.toFixed(1)}h</span>
+                        <span className="font-bold text-coffee-900">
+                          {author.longestSessionHours.toFixed(1)}h
+                        </span>
                       </div>
                       <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                         <span className="text-coffee-700 font-medium">⏳ Avg Session:</span>
-                        <span className="font-bold text-coffee-900">{author.avgSessionHours.toFixed(1)}h</span>
+                        <span className="font-bold text-coffee-900">
+                          {author.avgSessionHours.toFixed(1)}h
+                        </span>
                       </div>
                       <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                         <span className="text-coffee-700 font-medium">📊 Avg Commits/Session:</span>
-                        <span className="font-bold text-coffee-900">{author.avgCommitsPerSession.toFixed(2)}</span>
+                        <span className="font-bold text-coffee-900">
+                          {author.avgCommitsPerSession.toFixed(2)}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                         <span className="text-coffee-700 font-medium">📈 Avg Sessions/Day:</span>
-                        <span className="font-bold text-coffee-900">{author.avgSessionsPerDay.toFixed(2)}</span>
+                        <span className="font-bold text-coffee-900">
+                          {author.avgSessionsPerDay.toFixed(2)}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                         <span className="text-coffee-700 font-medium">🎯 Longest Streak:</span>
-                        <span className="font-bold text-coffee-900">{author.longestStreakDays} days</span>
+                        <span className="font-bold text-coffee-900">
+                          {author.longestStreakDays} days
+                        </span>
                       </div>
                       {author.mostProductiveDayOfWeek && (
                         <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                           <span className="text-coffee-700 font-medium">📆 Top Day:</span>
-                          <span className="font-bold text-coffee-900">{author.mostProductiveDayOfWeek}</span>
+                          <span className="font-bold text-coffee-900">
+                            {author.mostProductiveDayOfWeek}
+                          </span>
                         </div>
                       )}
                       {author.minTimeBetweenSessionsMin !== undefined && (
                         <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                           <span className="text-coffee-700 font-medium">🛋️ Min Break:</span>
-                          <span className="font-bold text-coffee-900">{formatMinutes(author.minTimeBetweenSessionsMin)}</span>
+                          <span className="font-bold text-coffee-900">
+                            {formatMinutes(author.minTimeBetweenSessionsMin)}
+                          </span>
                         </div>
                       )}
                       {author.avgMinutesBetweenCommits !== undefined && (
                         <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                           <span className="text-coffee-700 font-medium">⏰ Avg Commit Gap:</span>
-                          <span className="font-bold text-coffee-900">{formatMinutes(author.avgMinutesBetweenCommits)}</span>
+                          <span className="font-bold text-coffee-900">
+                            {formatMinutes(author.avgMinutesBetweenCommits)}
+                          </span>
                         </div>
                       )}
                       {author.maxMinutesBetweenCommits !== undefined && (
                         <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
                           <span className="text-coffee-700 font-medium">⌛ Max Commit Gap:</span>
-                          <span className="font-bold text-coffee-900">{formatMinutes(author.maxMinutesBetweenCommits)}</span>
+                          <span className="font-bold text-coffee-900">
+                            {formatMinutes(author.maxMinutesBetweenCommits)}
+                          </span>
                         </div>
                       )}
                     </>

@@ -55,6 +55,7 @@ git push && git push --tags
 ```
 
 **Example for v1.5.0**:
+
 ```bash
 npm version minor -w packages/core
 git add package-lock.json packages/core/package.json
@@ -84,19 +85,23 @@ The GitHub Action (`.github/workflows/publish.yml`) will:
 ## Troubleshooting
 
 ### "Version mismatch" error
+
 - Ensure the git tag (e.g., `v1.4.0`) matches the version in `packages/core/package.json` (e.g., `1.4.0`)
 
 ### "ENEEDAUTH" or "need auth" error
+
 - Verify Trusted Publisher is configured correctly at npm package settings
 - Check that repo owner/name and workflow filename match exactly
 
 ### "Package already published" error
+
 - You cannot republish the same version
 - Bump the version number and create a new tag
 
 ## Best Practices
 
 1. **Always run tests locally** before creating a tag:
+
    ```bash
    npm test -w packages/core
    ```

@@ -50,7 +50,9 @@ export function resolveOptions(options: StatsOptions): ResolvedSessionOptions {
     invalid(`sessionTimeoutMin must be a positive number, got ${String(sessionTimeoutMin)}`);
   }
   if (!Number.isFinite(firstCommitBonusMin) || firstCommitBonusMin < 0) {
-    invalid(`firstCommitBonusMin must be a non-negative number, got ${String(firstCommitBonusMin)}`);
+    invalid(
+      `firstCommitBonusMin must be a non-negative number, got ${String(firstCommitBonusMin)}`
+    );
   }
   if (!isValidTimezone(timezone)) {
     invalid(`Unknown timezone: ${timezone}`);
@@ -60,7 +62,9 @@ export function resolveOptions(options: StatsOptions): ResolvedSessionOptions {
   checkPositiveInteger('maxPages', options.maxPages);
   checkNonNegativeInteger('maxRetries', options.maxRetries);
   if (options.retryBaseDelayMs !== undefined && !(options.retryBaseDelayMs >= 0)) {
-    invalid(`retryBaseDelayMs must be a non-negative number, got ${String(options.retryBaseDelayMs)}`);
+    invalid(
+      `retryBaseDelayMs must be a non-negative number, got ${String(options.retryBaseDelayMs)}`
+    );
   }
   if (options.cacheTTLms !== undefined && !(options.cacheTTLms >= 0)) {
     invalid(`cacheTTLms must be a non-negative number, got ${String(options.cacheTTLms)}`);

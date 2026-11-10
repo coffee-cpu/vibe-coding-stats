@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **vibe-coding-stats** is a TypeScript library and npm package for analyzing GitHub repositories to estimate developer activity in a human-friendly way. It calculates metrics like hours spent coding and coding sessions based on commit history.
 
 The project consists of:
+
 - **Core library** (`packages/core/`) - TypeScript package published to npm
 - **Demo app** (`demo/`) - React + Vite app deployed to GitHub Pages for visualizing stats
 
@@ -17,6 +18,7 @@ The project consists of:
 The core concept is a **coding session**: a series of commits by the same author where consecutive commits are no more than `sessionTimeoutMin` minutes apart (default: 45 minutes).
 
 Session duration calculation:
+
 ```
 duration = (lastCommitTime - firstCommitTime) + firstCommitBonusMin
 ```
@@ -94,6 +96,7 @@ packages/core/
    - Handles caching at the appropriate level
 
 **Data Flow Pattern**:
+
 ```
 GitHub API (raw)
   ↓ fetch (api/github.ts)
@@ -109,6 +112,7 @@ RepoStats
 ```
 
 This architecture makes it easy to:
+
 - Test each layer independently
 - Replace implementations (e.g., swap REST API for GraphQL)
 - Add new filters or transformations without touching other layers
@@ -129,6 +133,7 @@ The `excludeMergeCommits` option allows filtering merge commits, which often hav
 ### Bot Detection
 
 When `excludeBots: true` (default), filter out:
+
 - Accounts GitHub reports as `type: "Bot"`
 - Logins/names ending in `[bot]` (GitHub Apps)
 - Whole-word matches of known automation names (dependabot, renovate, github-actions, …)
@@ -145,6 +150,7 @@ Never use plain substring matching: it drops humans such as "Talbot" or "Abbott"
 ### Error Handling
 
 Use the `StatsError` class with structured error codes:
+
 - `INVALID_REPO` - Malformed repo input
 - `NOT_FOUND` - Repository doesn't exist (404)
 - `RATE_LIMIT` - GitHub API rate limit exceeded
@@ -173,8 +179,15 @@ npm test -w packages/core -- sessions.test.ts
 # Watch mode for tests
 npm test -w packages/core -- --watch
 
+# Tests with coverage thresholds (what CI runs)
+npm run test:coverage -w packages/core
+
 # Lint (ESLint flat config: eslint.config.mjs)
 npm run lint
+
+# Formatting (Prettier: .prettierrc.json); CI runs format:check
+npm run format
+npm run format:check
 
 # Type check (core src + tests via tsconfig.test.json, and the demo)
 npm run type-check
@@ -184,16 +197,20 @@ npm run dev -w demo
 
 # Build demo for deployment (resolves the library from packages/core/src; no core build needed)
 npm run build -w demo
+
+# Demo end-to-end tests (Playwright; GitHub API mocked via page.route)
+npm run test:e2e -w demo -- --trace off
 ```
 
 Development requires Node.js 22.12+ (vitest 5, vite 8, tsup 9). The published library supports Node.js 18+.
-CI (`.github/workflows/ci.yml`) runs lint, type-check, tests and both builds on Node 22 and 24.
+CI (`.github/workflows/ci.yml`) runs lint, format check, type-check, tests with coverage and both builds on Node 22 and 24, plus a Playwright e2e job for the demo.
 
 ## Testing Requirements
 
 ### Critical Test Cases
 
 **Session Grouping**:
+
 - Single commit sessions (should get `firstCommitBonusMin` duration)
 - Multi-commit sessions with various gaps
 - Boundary conditions (44min, 45min, 46min gaps)
@@ -201,11 +218,13 @@ CI (`.github/workflows/ci.yml`) runs lint, type-check, tests and both builds on 
 - Interleaved commits from different authors
 
 **Timezone Handling**:
+
 - UTC conversion accuracy
 - Daylight saving time transitions
 - Cross-timezone boundary edge cases
 
 **Edge Cases**:
+
 - Empty repository (0 commits) - should return zero metrics
 - Single commit repository
 - All commits filtered out (e.g., all bots)
@@ -213,6 +232,7 @@ CI (`.github/workflows/ci.yml`) runs lint, type-check, tests and both builds on 
 - Future dates in `until` parameter
 
 **GitHub API**:
+
 - Mock pagination responses
 - Rate limit scenarios (include retry logic)
 - Error responses (404, 401, 403)
@@ -220,11 +240,13 @@ CI (`.github/workflows/ci.yml`) runs lint, type-check, tests and both builds on 
 ## Metrics Definitions
 
 ### Session-Level Metrics
+
 - **durationMinutes**: Time from first to last commit + firstCommitBonusMin
 - **avgMinutesBetweenCommits**: Average gap between consecutive commits (undefined for single-commit sessions)
 - **maxMinutesBetweenCommits**: Maximum gap between consecutive commits (undefined for single-commit sessions)
 
 ### Aggregate Metrics
+
 - **totalHours**: Sum of all session durations
 - **sessionsCount**: Number of distinct coding sessions
 - **devDays**: Number of distinct days (configured timezone) on which a session started — consistent with `perDay`
@@ -254,21 +276,24 @@ These are inherent to the approach and should be documented but not "fixed":
 ### Code Organization
 
 **Single Responsibility Principle**:
+
 - Each module should have ONE clear purpose
 - API layer handles HTTP only, no business logic
 - Orchestration happens at application layer (index.ts), not in API or utility layers
 - When a module does multiple things, split it into focused modules
 
 **Naming Conventions**:
+
 - API functions should indicate they return raw data: `fetchGitHubCommits()` not `fetchCommits()`
 - Predicates should be clear: `isLikelyBot()`, `isMergeCommit()`, `shouldIncludeCommit()`
 - Transformation functions: `transformGitHubCommit()` - verb + type pattern
 
 **Testing Strategy**:
+
 - Test each layer independently with mocked dependencies
 - Integration tests should cover the full pipeline (see `integration.test.ts`)
 - When refactoring, ensure all existing tests still pass
-- Current test count: 208 tests across 8 test files
+- Current test count: 213 core tests across 8 test files, plus 6 demo e2e tests in `demo/e2e/`
 - Type-check tests too (`npm run type-check -w packages/core` includes `tsconfig.test.json`)
 - Inject `fetchImpl` in tests; pass `maxRetries: 0` or `retryBaseDelayMs: 0` to keep error tests fast
 - Always call `fetchImpl` as a plain function — browsers throw "Illegal invocation" if `fetch` is called as a method of another object
@@ -276,6 +301,7 @@ These are inherent to the approach and should be documented but not "fixed":
 ### Build Configuration
 
 **TypeScript Compilation**:
+
 - `tsconfig.json` uses `composite: true` for project references
 - tsup DTS generation needs `composite: false` override in `tsup.config.ts`:
   ```typescript
@@ -290,21 +316,23 @@ These are inherent to the approach and should be documented but not "fixed":
 ### Common Patterns
 
 **Error Handling**:
+
 - Use `StatsError` class with semantic error codes
 - API layer maps HTTP errors to error codes (404 → NOT_FOUND, etc.)
 - Always wrap fetch errors in try/catch and rethrow as StatsError
 
 **Data Transformation Pattern**:
+
 ```typescript
 // ❌ Don't transform in API layer
 export async function fetchData() {
   const raw = await api();
-  return transform(filter(raw));  // NO!
+  return transform(filter(raw)); // NO!
 }
 
 // ✅ Return raw data, transform at orchestration layer
 export async function fetchData() {
-  return await api();  // Return raw data
+  return await api(); // Return raw data
 }
 
 // In index.ts:
@@ -314,6 +342,7 @@ const filtered = transformed.filter(predicate);
 ```
 
 **Filtering Pattern**:
+
 - Use array methods with predicates: `.filter(shouldIncludeCommit)`
 - Keep all filtering logic in `logic/filters.ts`
 - Filtering happens AFTER transformation, so derived flags (`isBot`, `isMerge`) are computed once and identities are unified before author filters apply

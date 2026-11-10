@@ -45,10 +45,7 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const stats = await getRepoStats(
-      { repo: 'owner/repo' },
-      { fetchImpl: mockFetch }
-    );
+    const stats = await getRepoStats({ repo: 'owner/repo' }, { fetchImpl: mockFetch });
 
     expect(stats.repo).toBe('owner/repo');
     expect(stats.totals.totalCommits).toBe(6);
@@ -78,10 +75,7 @@ describe('getRepoStats integration', () => {
       json: async () => [],
     });
 
-    const stats = await getRepoStats(
-      { repo: 'owner/repo' },
-      { fetchImpl: mockFetch }
-    );
+    const stats = await getRepoStats({ repo: 'owner/repo' }, { fetchImpl: mockFetch });
 
     expect(stats.totals).toEqual({
       totalHours: 0,
@@ -126,9 +120,7 @@ describe('getRepoStats integration', () => {
   });
 
   it('should respect custom first commit bonus', async () => {
-    const mockCommits = [
-      createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z'),
-    ];
+    const mockCommits = [createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z')];
 
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -145,9 +137,7 @@ describe('getRepoStats integration', () => {
   });
 
   it('should filter by date range', async () => {
-    const mockCommits = [
-      createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z'),
-    ];
+    const mockCommits = [createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z')];
 
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -173,9 +163,7 @@ describe('getRepoStats integration', () => {
   });
 
   it('should handle Date objects for date range', async () => {
-    const mockCommits = [
-      createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z'),
-    ];
+    const mockCommits = [createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z')];
 
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -242,10 +230,7 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const stats = await getRepoStats(
-      { repo: 'owner/repo' },
-      { fetchImpl: mockFetch }
-    );
+    const stats = await getRepoStats({ repo: 'owner/repo' }, { fetchImpl: mockFetch });
 
     expect(stats.totals.totalCommits).toBe(1);
     expect(stats.perAuthor).toHaveLength(1);
@@ -366,12 +351,9 @@ describe('getRepoStats integration', () => {
   });
 
   it('should throw error for invalid repo', async () => {
-    await expect(
-      getRepoStats(
-        { repo: 'invalid-format' },
-        { fetchImpl: fetch }
-      )
-    ).rejects.toThrow(StatsError);
+    await expect(getRepoStats({ repo: 'invalid-format' }, { fetchImpl: fetch })).rejects.toThrow(
+      StatsError
+    );
   });
 
   it('should calculate session durations correctly', async () => {
@@ -407,10 +389,7 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const stats = await getRepoStats(
-      { repo: 'owner/repo' },
-      { fetchImpl: mockFetch }
-    );
+    const stats = await getRepoStats({ repo: 'owner/repo' }, { fetchImpl: mockFetch });
 
     expect(stats.totals.devDays).toBe(3);
     expect(stats.perDay).toHaveLength(3);
@@ -435,10 +414,7 @@ describe('getRepoStats integration', () => {
       json: async () => mockCommits,
     });
 
-    const stats = await getRepoStats(
-      { repo: 'owner/repo' },
-      { fetchImpl: mockFetch }
-    );
+    const stats = await getRepoStats({ repo: 'owner/repo' }, { fetchImpl: mockFetch });
 
     expect(stats.totals.totalCommits).toBe(5);
     expect(stats.totals.sessionsCount).toBe(2);
@@ -448,9 +424,7 @@ describe('getRepoStats integration', () => {
   });
 
   it('should cache results and reuse them on subsequent calls', async () => {
-    const mockCommits = [
-      createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z'),
-    ];
+    const mockCommits = [createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z')];
 
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -480,9 +454,7 @@ describe('getRepoStats integration', () => {
   });
 
   it('should not cache when cache is disabled', async () => {
-    const mockCommits = [
-      createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z'),
-    ];
+    const mockCommits = [createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z')];
 
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -492,26 +464,18 @@ describe('getRepoStats integration', () => {
     clearCache();
 
     // First call
-    await getRepoStats(
-      { repo: 'owner/repo' },
-      { cache: 'none', fetchImpl: mockFetch }
-    );
+    await getRepoStats({ repo: 'owner/repo' }, { cache: 'none', fetchImpl: mockFetch });
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
 
     // Second call - should fetch again
-    await getRepoStats(
-      { repo: 'owner/repo' },
-      { cache: 'none', fetchImpl: mockFetch }
-    );
+    await getRepoStats({ repo: 'owner/repo' }, { cache: 'none', fetchImpl: mockFetch });
 
     expect(mockFetch).toHaveBeenCalledTimes(2); // Called twice
   });
 
   it('should use different cache entries for different options', async () => {
-    const mockCommits = [
-      createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z'),
-    ];
+    const mockCommits = [createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z')];
 
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -541,7 +505,9 @@ describe('getRepoStats integration', () => {
     const respond = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
     it('returns zero metrics for an empty repository (GitHub answers 409)', async () => {
-      const mockFetch = vi.fn().mockResolvedValue(respond({ message: 'Git Repository is empty.' }, 409));
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(respond({ message: 'Git Repository is empty.' }, 409));
       const stats = await getRepoStats({ repo: 'owner/empty' }, { fetchImpl: mockFetch });
       expect(stats.totals.totalCommits).toBe(0);
       expect(stats.totals.totalHours).toBe(0);
@@ -549,21 +515,28 @@ describe('getRepoStats integration', () => {
     });
 
     it('keeps humans whose names contain "bot"', async () => {
-      const mockFetch = vi.fn().mockResolvedValue(
-        respond([
-          createMockGitHubCommit('sha1', 'Jane Abbott', 'jabbott', '2024-01-15T14:00:00Z'),
-          createMockGitHubCommit('sha2', 'Ann Talbot', 'talbot', '2024-01-15T15:00:00Z'),
-        ])
-      );
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(
+          respond([
+            createMockGitHubCommit('sha1', 'Jane Abbott', 'jabbott', '2024-01-15T14:00:00Z'),
+            createMockGitHubCommit('sha2', 'Ann Talbot', 'talbot', '2024-01-15T15:00:00Z'),
+          ])
+        );
       const stats = await getRepoStats({ repo: 'owner/repo' }, { fetchImpl: mockFetch });
       expect(stats.totals.totalCommits).toBe(2);
     });
 
     it('parses URLs with query strings and fragments', async () => {
       const mockFetch = vi.fn().mockResolvedValue(respond([]));
-      const stats = await getRepoStats({ url: 'https://github.com/owner/repo?tab=readme#top' }, { fetchImpl: mockFetch });
+      const stats = await getRepoStats(
+        { url: 'https://github.com/owner/repo?tab=readme#top' },
+        { fetchImpl: mockFetch }
+      );
       expect(stats.repo).toBe('owner/repo');
-      expect(mockFetch.mock.calls[0][0]).toMatch(/^https:\/\/api\.github\.com\/repos\/owner\/repo\/commits\?/);
+      expect(mockFetch.mock.calls[0][0]).toMatch(
+        /^https:\/\/api\.github\.com\/repos\/owner\/repo\/commits\?/
+      );
     });
 
     it('rejects invalid options with INVALID_OPTIONS before fetching', async () => {
@@ -572,19 +545,34 @@ describe('getRepoStats integration', () => {
         getRepoStats({ repo: 'owner/repo' }, { timezone: 'Mars/Base', fetchImpl: mockFetch })
       ).rejects.toMatchObject({ code: 'INVALID_OPTIONS' });
       await expect(
-        getRepoStats({ repo: 'owner/repo' }, { since: '2024-02-01', until: '2024-01-01', fetchImpl: mockFetch })
+        getRepoStats(
+          { repo: 'owner/repo' },
+          { since: '2024-02-01', until: '2024-01-01', fetchImpl: mockFetch }
+        )
       ).rejects.toMatchObject({ code: 'INVALID_OPTIONS' });
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('does not serve a maxPages-truncated result for a full request', async () => {
       const page = Array.from({ length: 100 }, (_, i) =>
-        createMockGitHubCommit(`sha${i}`, 'Alice', 'alice', new Date(Date.UTC(2024, 0, 1, 0, i)).toISOString())
+        createMockGitHubCommit(
+          `sha${i}`,
+          'Alice',
+          'alice',
+          new Date(Date.UTC(2024, 0, 1, 0, i)).toISOString()
+        )
       );
       const makeFetch = () =>
-        vi.fn().mockResolvedValueOnce(respond(page)).mockResolvedValueOnce(respond(page)).mockResolvedValue(respond([]));
+        vi
+          .fn()
+          .mockResolvedValueOnce(respond(page))
+          .mockResolvedValueOnce(respond(page))
+          .mockResolvedValue(respond([]));
 
-      const truncated = await getRepoStats({ repo: 'owner/repo' }, { maxPages: 1, fetchImpl: makeFetch() });
+      const truncated = await getRepoStats(
+        { repo: 'owner/repo' },
+        { maxPages: 1, fetchImpl: makeFetch() }
+      );
       const full = await getRepoStats({ repo: 'owner/repo' }, { fetchImpl: makeFetch() });
 
       expect(truncated.totals.totalCommits).toBe(100);
@@ -594,7 +582,9 @@ describe('getRepoStats integration', () => {
     it('returns cached results as independent copies', async () => {
       const mockFetch = vi
         .fn()
-        .mockResolvedValue(respond([createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z')]));
+        .mockResolvedValue(
+          respond([createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z')])
+        );
       const first = await getRepoStats({ repo: 'owner/repo' }, { fetchImpl: mockFetch });
       first.totals.totalHours = 1000;
       const second = await getRepoStats({ repo: 'owner/repo' }, { fetchImpl: mockFetch });
@@ -605,7 +595,9 @@ describe('getRepoStats integration', () => {
     it('uses the configured timezone for the most productive weekday', async () => {
       const mockFetch = vi
         .fn()
-        .mockResolvedValue(respond([createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-08T02:00:00Z')]));
+        .mockResolvedValue(
+          respond([createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-08T02:00:00Z')])
+        );
       const stats = await getRepoStats(
         { repo: 'owner/repo' },
         { timezone: 'America/New_York', fetchImpl: mockFetch }
@@ -621,23 +613,62 @@ describe('getRepoStats integration', () => {
       };
       const mockFetch = vi
         .fn()
-        .mockResolvedValue(respond([createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z'), unlinked]));
+        .mockResolvedValue(
+          respond([
+            createMockGitHubCommit('sha1', 'Alice', 'alice', '2024-01-15T14:00:00Z'),
+            unlinked,
+          ])
+        );
       const stats = await getRepoStats({ repo: 'owner/repo' }, { fetchImpl: mockFetch });
       expect(stats.perAuthor).toHaveLength(1);
-      expect(stats.perAuthor[0]).toMatchObject({ author: 'alice', totalCommits: 2, sessionsCount: 1 });
+      expect(stats.perAuthor[0]).toMatchObject({
+        author: 'alice',
+        totalCommits: 2,
+        sessionsCount: 1,
+      });
     });
 
     it('drops commits whose author date is outside since/until', async () => {
       // GitHub filters by committer date, so a rebased commit can be returned
       // even though it was authored before `since`.
-      const mockFetch = vi.fn().mockResolvedValue(
-        respond([
-          createMockGitHubCommit('old', 'Alice', 'alice', '2023-12-20T10:00:00Z'),
-          createMockGitHubCommit('new', 'Alice', 'alice', '2024-01-15T10:00:00Z'),
-        ])
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(
+          respond([
+            createMockGitHubCommit('old', 'Alice', 'alice', '2023-12-20T10:00:00Z'),
+            createMockGitHubCommit('new', 'Alice', 'alice', '2024-01-15T10:00:00Z'),
+          ])
+        );
+      const stats = await getRepoStats(
+        { repo: 'owner/repo' },
+        { since: '2024-01-01', fetchImpl: mockFetch }
       );
-      const stats = await getRepoStats({ repo: 'owner/repo' }, { since: '2024-01-01', fetchImpl: mockFetch });
       expect(stats.totals.totalCommits).toBe(1);
     });
+  });
+
+  it('reports truncated in RepoStats, including from the cache', async () => {
+    const commits = Array.from({ length: 100 }, (_, i) =>
+      createMockGitHubCommit(
+        `sha${i}`,
+        'Alice',
+        'alice',
+        new Date(Date.UTC(2024, 0, 1, 0, i)).toISOString()
+      )
+    );
+    const mockFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify(commits)));
+
+    const first = await getRepoStats({ repo: 'owner/repo' }, { maxPages: 1, fetchImpl: mockFetch });
+    const cached = await getRepoStats(
+      { repo: 'owner/repo' },
+      { maxPages: 1, fetchImpl: mockFetch }
+    );
+    expect(first.truncated).toBe(true);
+    expect(cached.truncated).toBe(true);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    const small = vi.fn().mockResolvedValue(new Response(JSON.stringify(commits.slice(0, 3))));
+    const complete = await getRepoStats({ repo: 'owner/small' }, { maxPages: 1, fetchImpl: small });
+    expect(complete.truncated).toBe(false);
   });
 });

@@ -69,6 +69,11 @@ export interface RepoStats {
   totals: AggregateStats;
   perAuthor: AuthorStats[];
   perDay: DayStats[];
+  /**
+   * True when `maxPages` stopped fetching before the end of the history, so the
+   * stats cover only the most recent commits. Always set by getRepoStats.
+   */
+  truncated?: boolean;
   /** @deprecated Never populated; will be removed in the next major version. */
   raw?: {
     commitSample?: Array<{

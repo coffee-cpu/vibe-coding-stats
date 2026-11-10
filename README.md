@@ -132,7 +132,7 @@ console.log(`Total hours (last 30 days): ${result.totals.totalHours}`);
 console.log(`Sessions: ${result.totals.sessionsCount}`);
 
 // View per-author breakdown with GitHub profile links
-result.perAuthor.forEach(author => {
+result.perAuthor.forEach((author) => {
   const profileUrl = author.authorLogin ? `https://github.com/${author.authorLogin}` : null;
   console.log(`${author.author}: ${author.totalHours}h, ${author.sessionsCount} sessions`);
   if (profileUrl) {
@@ -167,13 +167,19 @@ Main function to get repository statistics.
 **Parameters:**
 
 1. `repoInput` - Repository identifier (required):
+
 ```typescript
-{ repo: string }  // "owner/repo"
+{
+  repo: string;
+} // "owner/repo"
 // OR
-{ url: string }   // "https://github.com/owner/repo"
+{
+  url: string;
+} // "https://github.com/owner/repo"
 ```
 
 2. `options` - Configuration options (optional):
+
 ```typescript
 {
   // Session configuration
@@ -191,7 +197,7 @@ Main function to get repository statistics.
   timezone?: string;              // default: "UTC" (any IANA timezone)
   githubToken?: string;           // optional, for higher rate limits and private repos
   perPage?: number;               // default: 100 (GitHub's maximum; larger values are clamped)
-  maxPages?: number;              // default: unlimited
+  maxPages?: number;              // default: unlimited (see `truncated` in the result)
   fetchImpl?: typeof fetch;       // custom fetch (testing, proxies)
 
   // Retries (network errors, 5xx, rate limits with a short Retry-After)
@@ -232,7 +238,8 @@ Promise<{
   };
   perAuthor: AuthorStats[];
   perDay: DayStats[];
-}>
+  truncated: boolean; // true if maxPages stopped before the end of the history
+}>;
 ```
 
 **Input handling:**
@@ -245,15 +252,15 @@ Promise<{
 
 All failures are thrown as `StatsError` with a `code`:
 
-| Code | When |
-|---|---|
-| `INVALID_REPO` | Repo string or URL can't be parsed |
-| `INVALID_OPTIONS` | An option is out of range or malformed |
-| `NOT_FOUND` | Repository doesn't exist, or is private and no token with access was given |
-| `UNAUTHORIZED` | Bad token (401) or access forbidden (403) |
-| `RATE_LIMIT` | GitHub rate limit hit (403 with exhausted quota, secondary limits, or 429); the message includes the reset time when GitHub provides it |
-| `NETWORK` | The request failed after retries, or the response couldn't be parsed |
-| `UNKNOWN` | Any other GitHub error (e.g. persistent 5xx) |
+| Code              | When                                                                                                                                    |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `INVALID_REPO`    | Repo string or URL can't be parsed                                                                                                      |
+| `INVALID_OPTIONS` | An option is out of range or malformed                                                                                                  |
+| `NOT_FOUND`       | Repository doesn't exist, or is private and no token with access was given                                                              |
+| `UNAUTHORIZED`    | Bad token (401) or access forbidden (403)                                                                                               |
+| `RATE_LIMIT`      | GitHub rate limit hit (403 with exhausted quota, secondary limits, or 429); the message includes the reset time when GitHub provides it |
+| `NETWORK`         | The request failed after retries, or the response couldn't be parsed                                                                    |
+| `UNKNOWN`         | Any other GitHub error (e.g. persistent 5xx)                                                                                            |
 
 ```typescript
 import { getRepoStats, StatsError } from 'vibe-coding-stats';
@@ -304,8 +311,12 @@ Unauthenticated requests are limited to 60 per hour (each page of 100 commits is
 ```typescript
 const result = await getRepoStats(
   { repo: 'owner/repo' },
-  { githubToken: process.env.GITHUB_TOKEN }
+  { githubToken: process.env.GITHUB_TOKEN, maxPages: 50 }
 );
+
+if (result.truncated) {
+  console.log('Only the most recent 5,000 commits were analyzed');
+}
 ```
 
 Get a GitHub token from: https://github.com/settings/tokens. A fine-grained token with no extra permissions is enough for public repositories; private repositories need read access to their contents.
@@ -320,10 +331,7 @@ The package includes full TypeScript type definitions:
 import { getRepoStats, type RepoStats } from 'vibe-coding-stats';
 
 async function fetchStats(): Promise<RepoStats> {
-  const result = await getRepoStats(
-    { repo: 'owner/repo' },
-    { sessionTimeoutMin: 45 }
-  );
+  const result = await getRepoStats({ repo: 'owner/repo' }, { sessionTimeoutMin: 45 });
 
   // TypeScript knows the structure of result.totals
   const hours: number = result.totals.totalHours;
@@ -335,12 +343,7 @@ async function fetchStats(): Promise<RepoStats> {
 You can also import individual types:
 
 ```typescript
-import type {
-  RepoStats,
-  AuthorStats,
-  DayStats,
-  StatsOptions
-} from 'vibe-coding-stats';
+import type { RepoStats, AuthorStats, DayStats, StatsOptions } from 'vibe-coding-stats';
 ```
 
 ## How It Works
@@ -350,11 +353,13 @@ import type {
 A **coding session** is defined as a series of commits by the same author where consecutive commits are no more than `sessionTimeoutMin` minutes apart (default: 45 minutes).
 
 Session duration is calculated as:
+
 ```
 duration = (lastCommitTime - firstCommitTime) + firstCommitBonusMin
 ```
 
 For single-commit sessions:
+
 ```
 duration = firstCommitBonusMin (default: 15 minutes)
 ```
@@ -417,15 +422,23 @@ npm test -w packages/core
 # Run tests in watch mode
 npm run test:watch -w packages/core
 
-# Lint and type check (library, tests and demo)
+# Run tests with a coverage report (fails below the thresholds in vitest.config.ts)
+npm run test:coverage -w packages/core
+
+# Lint, check formatting and type check (library, tests and demo)
 npm run lint
+npm run format:check   # `npm run format` to fix
 npm run type-check
 
 # Run demo locally (uses the library source directly, no build needed)
 npm run dev -w demo
+
+# Demo end-to-end tests (Playwright, GitHub API mocked)
+npx playwright install chromium   # once
+npm run test:e2e -w demo
 ```
 
-CI runs lint, type-check, tests and both builds on every push to `main` and every pull request.
+CI runs lint, formatting, type-check, tests with coverage, both builds and the demo end-to-end tests on every push to `main` and every pull request.
 
 ## Contributing
 

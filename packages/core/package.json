@@ -5,6 +5,7 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -21,6 +22,7 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "type-check": "tsc --noEmit && tsc -p tsconfig.test.json",
     "copy-readme": "cp ../../README.md .",
     "prepublishOnly": "npm run copy-readme"
@@ -45,6 +47,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
+    "@vitest/coverage-v8": "^5.1.0",
     "tsup": "^9.0.0",
     "typescript": "^5.3.3",
     "vitest": "^5.1.0"
